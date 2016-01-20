@@ -65,7 +65,7 @@ void lzw_dict_print(lzw_dict *dict)
     printf("\n");
 }
 
-char * lzw_encode(lzw_dict *dict, char *seq, data *buffer)
+char * lzw_encode_run(lzw_dict *dict, char *seq, data *buffer)
 {
     int len; // Insert length 1 into dict
     lzw_dict_entry *curr = dict->head;
@@ -86,23 +86,30 @@ char * lzw_encode(lzw_dict *dict, char *seq, data *buffer)
     bits_write(buffer, curr->code, dict->bits);
     // Add new entry to dict if not EOF
     if (*(seq + len) != '\0') {
-        char *new_seq = malloc(len);
+        char *new_seq = malloc(len + 1);
         strncpy(new_seq, seq, len);
+        new_seq[len] = '\0';
         lzw_dict_add(dict, new_seq);
     }
     return seq + len - 1;
 }
 
-int main() {
-    char *alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    char *code = "TOBEORNOTTOBEORTOBEORNOT";
+data * lzw_encode(char *alphabet, char *code)
+{
     data *d = data_init();
     lzw_dict *dict = lzw_dict_init(alphabet);
     while (*code != '\0')
-        code = lzw_encode(dict, code, d);
+        code = lzw_encode_run(dict, code, d);
     bits_write(d, 0, dict->bits); // Stop code = 0
-    lzw_dict_print(dict);
+    lzw_dict_free(dict);
+    free(dict);
+    return d;
+}
+
+int main() {
+    char *alphabet = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI";
+    char *code = "HEHHHHFFHHHHHFEHFFHHGHHHCHBHFEHFEHDBGEEFDFFHFFBF>BCEEEFECE@?ADDDAFEE>DADEDDD?G:BCCA=?@@@5>@DE?AE>C@B\0";
+    data *d = lzw_encode(alphabet, code);
     bits_print(d);
     data_free(d);
-    lzw_dict_free(dict);
 }

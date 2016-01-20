@@ -8,11 +8,13 @@
 
 typedef struct data
 {
-    uint32_t *head;
-    uint32_t *curr;
-    uint8_t offset;
-    uint8_t size;
-    uint8_t index;
+    uint32_t *head;         // Pointer to the head of the block of memory
+    uint32_t *curr;         // Pointer to next write
+    uint8_t offset;         // Bit offset of write pointer
+    uint32_t *read_curr;    // Pointer to next read
+    uint8_t read_offset;    // Bit offset of read pointer
+    uint8_t size;           // Size of allocated memory
+    uint8_t index;          // Size of used memory
 } data;
 
 void bits_write(data *, uint32_t, uint8_t);
@@ -22,5 +24,6 @@ data * data_init();
 void data_free(data *);
 void data_expand(data *);
 void p32(uint32_t b);
+int data_size(data *d);
 
 #endif
