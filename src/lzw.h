@@ -9,6 +9,7 @@ typedef struct lzw_dict_entry
     struct lzw_dict_entry *next;
     char *seq;
     int code;
+    int length;
 } lzw_dict_entry;
 
 typedef struct lzw_dict
