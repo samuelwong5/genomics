@@ -62,15 +62,18 @@ void rl_init(char *alphabet)
     CHAR_LENGTH = (int)C_LENGTH;
 }
 
-int main(void)
+int rl_benchmark(char *code)
 {
     char *alphabet = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI";
-    char *code = "HEHHHHFFHHHHHFEHFFHHGHHHCHBHFEHFEHDBGEEFDFFHFFBF>BCEEEFECE@?ADDDAFEE>DADEDDD?G:BCCA=?@@@5>@DE?AE>C@B\0";
+    //char *code = "HEHHHHFFHHHHHFEHFFHHGHHHCHBHFEHFEHDBGEEFDFFHFFBF>BCEEEFECE@?ADDDAFEE>DADEDDD?G:BCCA=?@@@5>@DE?AE>C@B\0";
     data *d = rl_encode(alphabet, code);
-    bits_print(d);
-    char *dec = rl_decode(alphabet, d);
+    int result = data_size(d);
     data_free(d);
-    free(dec);
-    printf("Original: %s\n", dec);
-    printf("Decoded : %s\n", dec);
+    return result;
+    //bits_print(d);
+    //char *dec = rl_decode(alphabet, d);
+    //data_free(d);
+    //free(dec);
+    //printf("Original: %s\n", dec);
+    //printf("Decoded : %s\n", dec);
 }

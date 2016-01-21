@@ -30,5 +30,6 @@ void lzw_dict_print(lzw_dict *);
 data * lzw_encode(char *, char *);
 char * lzw_dict_get(lzw_dict *dict, int code);
 char * lzw_decode(char *alphabet, data *d);
+int lzw_benchmark(char *);
 
 #endif

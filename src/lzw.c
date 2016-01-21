@@ -172,14 +172,18 @@ char * lzw_decode(char *alphabet, data *d)
     return plaintext;
 }
 
-int main() {
+int lzw_benchmark(char *code) 
+{
     char *alphabet = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI";
-    char *code = "HEHHHHFFHHHHHFEHFFHHGHHHCHBHFEHFEHDBGEEFDFFHFFBF>BCEEEFECE@?ADDDAFEE>DADEDDD?G:BCCA=?@@@5>@DE?AE>C@B\0";
+    //char *code = "HEHHHHFFHHHHHFEHFFHHGHHHCHBHFEHFEHDBGEEFDFFHFFBF>BCEEEFECE@?ADDDAFEE>DADEDDD?G:BCCA=?@@@5>@DE?AE>C@B\0";
     data *d = lzw_encode(alphabet, code);
-    bits_print(d);
-    char *dec = lzw_decode(alphabet, d);
-    printf("Original: %s\n", code);
-    printf("Decoded : %s\n", dec);
-    free(dec);
+    int result = data_size(d);
     data_free(d);
+    return result;
+    //bits_print(d);
+    //char *dec = lzw_decode(alphabet, d);
+    //printf("Original: %s\n", code);
+    //printf("Decoded : %s\n", dec);
+    //free(dec);
+    //data_free(d);
 }
