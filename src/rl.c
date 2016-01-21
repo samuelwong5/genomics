@@ -72,5 +72,5 @@ int main(void)
     data_free(d);
     free(dec);
     printf("Original: %s\n", dec);
-    printf("After   : %s\n", dec);
+    printf("Decoded : %s\n", dec);
 }

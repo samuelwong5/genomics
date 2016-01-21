@@ -13,12 +13,13 @@ lzw_dict * lzw_dict_init(char *alphabet)
         char *c = malloc(2);
         *c = alphabet[i];
         c[1] = '\0';
-        lzw_dict_add(dict, c);
+        lzw_dict_add(dict, c, 0);
     }
     return dict;
 }
 
-void lzw_dict_add(lzw_dict *dict, char *seq)
+// If decoding, set decode int to 1 so dict->bits is set accordingly
+void lzw_dict_add(lzw_dict *dict, char *seq, int decode)
 {
     // Create new entry
     lzw_dict_entry *entry = (lzw_dict_entry *)malloc(sizeof(lzw_dict_entry));
@@ -35,10 +36,21 @@ void lzw_dict_add(lzw_dict *dict, char *seq)
         entry->next = dict->head;
     dict->head = entry;
 
-    if (dict->count >= dict->next_bit) {
+    if (dict->count + decode >= dict->next_bit) {
         dict->bits++;
         dict->next_bit *= 2;
     }
+}
+
+char * lzw_dict_get(lzw_dict *dict, int code)
+{
+    lzw_dict_entry *curr = dict->head;
+    while (curr != NULL && curr->code > code)  {
+        curr = curr->next;
+    }
+    if (curr->code != code)
+        return NULL;
+    return curr->seq;
 }
 
 void lzw_dict_free(lzw_dict *dict)
@@ -59,10 +71,10 @@ void lzw_dict_print(lzw_dict *dict)
     lzw_dict_entry *curr = dict->head;
     printf("HEAD");
     while (curr != NULL) {
-        printf(" - %s", curr->seq);
+        printf(" - {%d : %s}", curr->code, curr->seq);
         curr = curr->next;
     }
-    printf("\n");
+    printf(" - TAIL\n");
 }
 
 char * lzw_encode_run(lzw_dict *dict, char *seq, data *buffer)
@@ -89,7 +101,7 @@ char * lzw_encode_run(lzw_dict *dict, char *seq, data *buffer)
         char *new_seq = malloc(len + 1);
         strncpy(new_seq, seq, len);
         new_seq[len] = '\0';
-        lzw_dict_add(dict, new_seq);
+        lzw_dict_add(dict, new_seq, 0);
     }
     return seq + len - 1;
 }
@@ -102,8 +114,62 @@ data * lzw_encode(char *alphabet, char *code)
         code = lzw_encode_run(dict, code, d);
     bits_write(d, 0, dict->bits); // Stop code = 0
     lzw_dict_free(dict);
-    free(dict);
     return d;
+}
+
+char * lzw_decode(char *alphabet, data *d)
+{
+    lzw_dict *dict = lzw_dict_init(alphabet);
+    int pt_len = 100;
+    int total_len = 0;
+    char *plaintext = malloc(pt_len);
+    char *curr = plaintext;
+    // Get the sequence corresponding to the code
+    int code = (int) bits_read(d, dict->bits);
+    char *last_seq = NULL;
+    while (code != 0) {
+        char *seq = lzw_dict_get(dict, code);
+        if (seq == NULL) {  // Edge case when cScSc where c is a character and S is a string
+            int seq_len = strlen(last_seq) + 1;
+            seq = malloc(seq_len + 1);
+            strncpy(seq, last_seq, seq_len - 1);
+            seq[seq_len - 1] = last_seq[0];
+            seq[seq_len] = '\0';
+            lzw_dict_add(dict, seq, 1);
+            total_len += seq_len;
+            strncpy(curr, seq, seq_len);
+            curr += seq_len;
+        } else {
+            // printf("Read: %s [Code: %d  Bits: %d]\n", seq, code, dict->bits);
+            int seq_len = strlen(seq);
+            // Increase size of result if needed
+            if (pt_len < total_len + seq_len) {
+                pt_len *= 2;
+                plaintext = realloc(plaintext, pt_len);
+                curr = plaintext + total_len;
+            }
+            // Copy sequence into result
+            total_len += seq_len;
+            strncpy(curr, seq, seq_len);
+            curr += seq_len;
+            // Add new entry to dict which is concat of last_seq and first char of current seq
+            if (last_seq != NULL) {
+                int new_seq_len = strlen(last_seq) + 2;
+                char *new_seq = malloc(new_seq_len);
+                strncpy(new_seq, last_seq, new_seq_len - 2);
+                new_seq[new_seq_len - 2] = seq[0];
+                new_seq[new_seq_len - 1] = '\0';
+                lzw_dict_add(dict, new_seq, 1);
+                // printf("Adding: %s\n", new_seq);
+            }
+        }
+        last_seq = seq;
+        code = (int)bits_read(d, dict->bits);
+        // printf("Ending === \n");
+    }
+    plaintext[total_len] = '\0';
+    lzw_dict_free(dict);
+    return plaintext;
 }
 
 int main() {
@@ -111,5 +177,9 @@ int main() {
     char *code = "HEHHHHFFHHHHHFEHFFHHGHHHCHBHFEHFEHDBGEEFDFFHFFBF>BCEEEFECE@?ADDDAFEE>DADEDDD?G:BCCA=?@@@5>@DE?AE>C@B\0";
     data *d = lzw_encode(alphabet, code);
     bits_print(d);
+    char *dec = lzw_decode(alphabet, d);
+    printf("Original: %s\n", code);
+    printf("Decoded : %s\n", dec);
+    free(dec);
     data_free(d);
 }

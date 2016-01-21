@@ -29,8 +29,10 @@ void bits_write(data *d, uint32_t value, uint8_t length)
         mask >>= (BUFFER_SIZE - length);
         mask &= value;
         *d->curr |= (mask << (BUFFER_SIZE - d->offset - length));
-        if (length + d->offset == BUFFER_SIZE)
+        if (length + d->offset == BUFFER_SIZE) {
             d->curr++;
+            d->index++;
+        }
     } else {
         uint32_t mask = 0xffffffff;
         mask >>= d->offset;
@@ -104,8 +106,8 @@ void bits_print(data *d)
 
 int data_size(data *d)
 {
-    int remainder = (BUFFER_SIZE - d->offset) / 8;
-    return d->index * BUFFER_SIZE / 8 - 4 + remainder;
+    int remainder = d->offset / 8 + (d->offset % 8 > 0 ? 1 : 0);
+    return d->index * BUFFER_SIZE / 8 + remainder;
 }
 
 void p32(uint32_t b)
