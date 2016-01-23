@@ -140,7 +140,6 @@ char * lzw_decode(char *alphabet, data *d)
             strncpy(curr, seq, seq_len);
             curr += seq_len;
         } else {
-            // printf("Read: %s [Code: %d  Bits: %d]\n", seq, code, dict->bits);
             int seq_len = strlen(seq);
             // Increase size of result if needed
             if (pt_len < total_len + seq_len) {
@@ -160,12 +159,10 @@ char * lzw_decode(char *alphabet, data *d)
                 new_seq[new_seq_len - 2] = seq[0];
                 new_seq[new_seq_len - 1] = '\0';
                 lzw_dict_add(dict, new_seq, 1);
-                // printf("Adding: %s\n", new_seq);
             }
         }
         last_seq = seq;
         code = (int)bits_read(d, dict->bits);
-        // printf("Ending === \n");
     }
     plaintext[total_len] = '\0';
     lzw_dict_free(dict);
@@ -175,15 +172,9 @@ char * lzw_decode(char *alphabet, data *d)
 int lzw_benchmark(char *code) 
 {
     char *alphabet = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI";
-    //char *code = "HEHHHHFFHHHHHFEHFFHHGHHHCHBHFEHFEHDBGEEFDFFHFFBF>BCEEEFECE@?ADDDAFEE>DADEDDD?G:BCCA=?@@@5>@DE?AE>C@B\0";
     data *d = lzw_encode(alphabet, code);
     int result = data_size(d);
     data_free(d);
     return result;
-    //bits_print(d);
-    //char *dec = lzw_decode(alphabet, d);
-    //printf("Original: %s\n", code);
-    //printf("Decoded : %s\n", dec);
-    //free(dec);
-    //data_free(d);
+
 }

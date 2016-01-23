@@ -1,7 +1,7 @@
 #include "rl.h"
 
 int OFFSET;
-int CHAR_LENGTH;  // Bits for storing each character, which is ceil(log_2(size of alphabet))
+int CHAR_LENGTH;      // Bits for storing each character, which is ceil(log_2(size of alphabet))
 int COUNT_LENGTH = 4; // Predefined number of bits for storing the 'run-length'
 int MAX_LENGTH;
 
@@ -10,14 +10,9 @@ char * rl_encode_run(char *seq, data *buffer)
     char c = seq[0];
     int count = 0;
     while (*(seq++) == c && count < MAX_LENGTH)
-        count++;
-    //printf("[%d %d] -> ", count, ((int) c) - OFFSET);
+        count++;;
     bits_write(buffer, ((int) c) - OFFSET, CHAR_LENGTH);
     bits_write(buffer, count, COUNT_LENGTH);
-    //int test_c = bits_read(buffer, CHAR_LENGTH);
-    //int test_count = bits_read(buffer, COUNT_LENGTH); 
-    //printf("[%d %d]\n", test_count, test_c);
-    //bits_print(buffer);
     return --seq;
 }
 
@@ -32,7 +27,6 @@ char * rl_decode(char *alphabet, data *buffer)
     while (next_char != 0) {
         char c = (char) (next_char + OFFSET);
         int count = (int) bits_read(buffer, COUNT_LENGTH);
-        //printf(">%d %d< ", count, next_char);
         len += count;
         for (; count > 0; count--)
             *(curr++) = c;
@@ -46,7 +40,6 @@ char * rl_decode(char *alphabet, data *buffer)
 data * rl_encode(char *alphabet, char *code)
 {
     rl_init(alphabet);
-    //printf("Char length: %d\n", CHAR_LENGTH);
     data *d = data_init();
     while (code[0] != '\0')
         code = rl_encode_run(code, d);
@@ -65,15 +58,8 @@ void rl_init(char *alphabet)
 int rl_benchmark(char *code)
 {
     char *alphabet = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI";
-    //char *code = "HEHHHHFFHHHHHFEHFFHHGHHHCHBHFEHFEHDBGEEFDFFHFFBF>BCEEEFECE@?ADDDAFEE>DADEDDD?G:BCCA=?@@@5>@DE?AE>C@B\0";
     data *d = rl_encode(alphabet, code);
     int result = data_size(d);
     data_free(d);
     return result;
-    //bits_print(d);
-    //char *dec = rl_decode(alphabet, d);
-    //data_free(d);
-    //free(dec);
-    //printf("Original: %s\n", dec);
-    //printf("Decoded : %s\n", dec);
 }

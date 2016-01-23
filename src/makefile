@@ -12,11 +12,14 @@ lzw.o : lzw.c bits.h
 rl.o : rl.c
 	${CC} ${CFLAGS} -c rl.c
 
+naive_rl.o : naive_rl.c naive_rl.h
+	${CC} ${CFLAGS} -c naive_rl.c    
+
 benchmark.o: benchmark.c rl.h lzw.h
 	${CC} ${CFLAGS} -c benchmark.c
 
-benchmark: bits.o lzw.o rl.o benchmark.o
-	${CC} -g benchmark.o bits.o lzw.o rl.o -o benchmark
+benchmark: bits.o lzw.o rl.o benchmark.o naive_rl.o
+	${CC} -g benchmark.o bits.o lzw.o naive_rl.o rl.o -o benchmark
 
 clean:
 	rm -rf bf *.o
