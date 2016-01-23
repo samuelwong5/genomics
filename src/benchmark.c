@@ -6,8 +6,9 @@
 #include "rl.h"
 #include "lzw.h"
 #include "naive_rl.h"
+#include "huffman.h"
 
-int MAX_TESTS = 1000000;
+int MAX_TESTS = 100000;
 int QS_BUFFER_SIZE = 1000;
 
 typedef struct benchmark_t {
@@ -28,6 +29,7 @@ benchmark_t * benchmark(FILE *f, benchmark_func bf)
     uint32_t enc_total = 0;
 
     time_t start = time(NULL);
+    int arr[100] = { 0 };
     while (tests--> 0 && fscanf(f, "%*[^\n]\n", NULL) != EOF) {
         // Skip first three lines (one is skipped in while expression
         fscanf(f, "%*[^\n]\n", NULL);
@@ -59,11 +61,12 @@ benchmark_t * benchmark(FILE *f, benchmark_func bf)
 int main(void)
 {
     FILE *f = fopen("../data/ERR161544_1.fastq", "r");
-    
-    benchmark_t *results = benchmark(f, rl_benchmark);
-    printf("Results:\n  Algorithm       Bytes    Ratio    Time\n  - Original  %9 " PRIu32 "\n", results->ori_total);
-    printf("  - %-8s  %9" PRIu32 "   %4.2f%   (%2llus)\n", "RL", results->enc_bytes, results->cmp_ratio, results->time);
-    free(results);
+
+    benchmark_t *results;
+    //results = benchmark(f, rl_benchmark);
+    //printf("Results:\n  Algorithm       Bytes    Ratio    Time\n  - Original  %9 " PRIu32 "\n", results->ori_total);
+    //printf("  - %-8s  %9" PRIu32 "   %4.2f%   (%2llus)\n", "RL", results->enc_bytes, results->cmp_ratio, results->time);
+    //free(results);
     
     results = benchmark(f, lzw_benchmark);
     printf("  - %-8s  %9" PRIu32 "   %4.2f%   (%2llus)\n", "LZW", results->enc_bytes, results->cmp_ratio, results->time);
@@ -73,5 +76,9 @@ int main(void)
     printf("  - %-8s  %9" PRIu32 "   %4.2f%   (%2llus)\n", "NAIVE RL", results->enc_bytes, results->cmp_ratio, results->time);
     free(results);
     
+    results = benchmark(f, huffman_benchmark);
+    printf("  - %-8s  %9" PRIu32 "   %4.2f%   (%2llus)\n", "HUFFMAN", results->enc_bytes, results->cmp_ratio, results->time);
+    free(results);
+
     fclose(f);
 }

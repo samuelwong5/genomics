@@ -29,6 +29,7 @@ void bits_print(data *);
 data * data_init();
 void data_free(data *);
 void data_expand(data *);
+int data_end(data *);
 void p32(uint32_t b);
 int data_size(data *d);
 

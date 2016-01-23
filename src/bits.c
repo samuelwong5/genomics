@@ -91,6 +91,11 @@ int data_size(data *d)
     return d->index * BUFFER_SIZE / 8 + remainder;
 }
 
+int data_end(data *d)
+{
+    return d->read_offset >= d->offset && d->curr == d->read_curr;
+}
+
 void p32(uint32_t b)
 {
     uint32_t mask = 1 << (BUFFER_SIZE - 1);

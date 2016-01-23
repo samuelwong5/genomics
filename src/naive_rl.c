@@ -10,6 +10,7 @@ char * naive_rl_encode_run(char *seq, char *buffer)
         count++;
     buffer[0] = c;
     buffer[1] = (char) count;
+    //printf("Setting %d %c\n", count, c);
     return --seq;
 }
 
@@ -24,6 +25,7 @@ char * naive_rl_encode(char *code)
         if (len >= BUFFER_INIT_SIZE) {
             BUFFER_CURR_SIZE *= 2;
             result = realloc(result, BUFFER_CURR_SIZE);
+            curr = result + len - 2;
         }
         code = naive_rl_encode_run(code, curr);
         curr += 2;
@@ -38,17 +40,19 @@ char * naive_rl_decode(char *data)
     char *decoded = malloc(BUFFER_CURR_SIZE);
     char *curr = decoded;
     int total_len = 0;
-    while (*data != '\0')
+    while (*data != '\0' && *(data + 1) != '\0')
     {
         char c = data[0];
         int len = (int) data[1];
+        //printf("Got %d %c\n", len, c);
         total_len += len;
         if (total_len >= BUFFER_CURR_SIZE) {
             BUFFER_INIT_SIZE *= 2;
             decoded = realloc(decoded, BUFFER_INIT_SIZE);
+            curr = decoded + total_len - len;
         }
         for (; len > 0; len--) {
-            *(decoded++) = c;
+            *(curr++) = c;
         }
         data += 2;
     }
@@ -59,6 +63,13 @@ int naive_rl_benchmark(char *code)
 {
     char *encoded = naive_rl_encode(code);
     int len = strlen(encoded);
+    char *dec = naive_rl_decode(encoded);
+    if (strncmp(code, dec, strlen(code)) != 0) {
+        printf("[NAIVE RL ERROR]\n");
+        printf("Original: %s\n", code);
+        printf("Decoded : %s\n", dec);
+    }
+    free(dec);
     free(encoded);
     return len; 
 }

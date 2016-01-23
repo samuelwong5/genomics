@@ -18,7 +18,7 @@ lzw_dict * lzw_dict_init(char *alphabet)
     return dict;
 }
 
-// If decoding, set decode int to 1 so dict->bits is set accordingly
+// If decoding, set decode int to 1. If encoding, set decode int to -1.
 void lzw_dict_add(lzw_dict *dict, char *seq, int decode)
 {
     // Create new entry
@@ -95,14 +95,13 @@ char * lzw_encode_run(lzw_dict *dict, char *seq, data *buffer)
         exit(-1);
     }
     // Write to buffer
+
+    // Add new entry to dict 
+    char *new_seq = malloc(len + 1);
+    strncpy(new_seq, seq, len);
+    new_seq[len] = '\0';
+    lzw_dict_add(dict, new_seq, -1);
     bits_write(buffer, curr->code, dict->bits);
-    // Add new entry to dict if not EOF
-    if (*(seq + len) != '\0') {
-        char *new_seq = malloc(len + 1);
-        strncpy(new_seq, seq, len);
-        new_seq[len] = '\0';
-        lzw_dict_add(dict, new_seq, 0);
-    }
     return seq + len - 1;
 }
 
@@ -155,6 +154,7 @@ char * lzw_decode(char *alphabet, data *d)
             if (last_seq != NULL) {
                 int new_seq_len = strlen(last_seq) + 2;
                 char *new_seq = malloc(new_seq_len);
+
                 strncpy(new_seq, last_seq, new_seq_len - 2);
                 new_seq[new_seq_len - 2] = seq[0];
                 new_seq[new_seq_len - 1] = '\0';
@@ -165,6 +165,7 @@ char * lzw_decode(char *alphabet, data *d)
         code = (int)bits_read(d, dict->bits);
     }
     plaintext[total_len] = '\0';
+
     lzw_dict_free(dict);
     return plaintext;
 }
@@ -174,6 +175,13 @@ int lzw_benchmark(char *code)
     char *alphabet = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI";
     data *d = lzw_encode(alphabet, code);
     int result = data_size(d);
+    char *dec = lzw_decode(alphabet, d);
+    if (strncmp(dec, code, strlen(code)) != 0) {
+        printf("[LZW ERROR]\n");
+        printf("Original: %s\n", code);
+        printf("Decoded : %s\n", dec);
+    }
+    free(dec);
     data_free(d);
     return result;
 
