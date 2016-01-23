@@ -1,24 +1,5 @@
 #include "bits.h"
 
-/*
-ARGUMENTS:
-
-DATA - the struct containing the buffer where data is written
-     offset
-0    |   32       128
-|XXXX----|--------|
-
-VALUE - the value to be written into the buffer
-
-LENGTH - the number of bits that should be used to contain the value
-     offset
-0    |   32       128
-|XXXXVVVV|VVVV----|
-             |
-             offset + length
-
-*/
-
 const int BUFFER_SIZE = 32;
 const int DATA_INIT_SIZE = 64;
 

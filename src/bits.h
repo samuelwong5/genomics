@@ -6,6 +6,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * Utility functions to writing individual bits into a buffer to
+ * increase compression rates. Uses a uint32_t buffer so a maximum
+ * of 32bits can be written or read at the same time. 
+ */
+
 typedef struct data
 {
     uint32_t *head;         // Pointer to the head of the block of memory
