@@ -175,13 +175,13 @@ int lzw_benchmark(char *code)
     char *alphabet = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI";
     data *d = lzw_encode(alphabet, code);
     int result = data_size(d);
-    char *dec = lzw_decode(alphabet, d);
+    /*char *dec = lzw_decode(alphabet, d);
     if (strncmp(dec, code, strlen(code)) != 0) {
         printf("[LZW ERROR]\n");
         printf("Original: %s\n", code);
         printf("Decoded : %s\n", dec);
     }
-    free(dec);
+    free(dec);*/
     data_free(d);
     return result;
 

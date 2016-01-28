@@ -103,7 +103,10 @@ typedef struct huffman_tree {
 
 void huffman_encode_char(data *, char);
 data * huffman_encode(char *);
-huffman_tree * huffman_decode_init(void);
+void huffman_tree_init(void);
+void huffman_tree_free(void);
+void huffman_tree_free_r(huffman_tree *);
+huffman_tree * huffman_tree_new(char, huffman_tree *, huffman_tree *);
 char * huffman_decode(data *);
 int huffman_benchmark(char *);
 

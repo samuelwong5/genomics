@@ -8,7 +8,7 @@
 #include "naive_rl.h"
 #include "huffman.h"
 
-int MAX_TESTS = 100000;
+int MAX_TESTS = 1000000;
 int QS_BUFFER_SIZE = 1000;
 
 typedef struct benchmark_t {
@@ -68,6 +68,13 @@ int main(void)
     //printf("  - %-8s  %9" PRIu32 "   %4.2f%   (%2llus)\n", "RL", results->enc_bytes, results->cmp_ratio, results->time);
     //free(results);
     
+
+    huffman_tree_init();
+    results = benchmark(f, huffman_benchmark);
+    printf("  - %-8s  %9" PRIu32 "   %4.2f%   (%2llus)\n", "HUFFMAN", results->enc_bytes, results->cmp_ratio, results->time);
+    free(results);
+    huffman_tree_free();
+
     results = benchmark(f, lzw_benchmark);
     printf("  - %-8s  %9" PRIu32 "   %4.2f%   (%2llus)\n", "LZW", results->enc_bytes, results->cmp_ratio, results->time);
     free(results);
@@ -75,10 +82,7 @@ int main(void)
     results = benchmark(f, naive_rl_benchmark);
     printf("  - %-8s  %9" PRIu32 "   %4.2f%   (%2llus)\n", "NAIVE RL", results->enc_bytes, results->cmp_ratio, results->time);
     free(results);
-    
-    results = benchmark(f, huffman_benchmark);
-    printf("  - %-8s  %9" PRIu32 "   %4.2f%   (%2llus)\n", "HUFFMAN", results->enc_bytes, results->cmp_ratio, results->time);
-    free(results);
+
 
     fclose(f);
 }

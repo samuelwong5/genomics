@@ -63,13 +63,13 @@ int naive_rl_benchmark(char *code)
 {
     char *encoded = naive_rl_encode(code);
     int len = strlen(encoded);
-    char *dec = naive_rl_decode(encoded);
+    /*char *dec = naive_rl_decode(encoded);
     if (strncmp(code, dec, strlen(code)) != 0) {
         printf("[NAIVE RL ERROR]\n");
         printf("Original: %s\n", code);
         printf("Decoded : %s\n", dec);
     }
-    free(dec);
+    free(dec);*/
     free(encoded);
     return len; 
 }

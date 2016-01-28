@@ -20,7 +20,8 @@ typedef struct data
     uint32_t *read_curr;    // Pointer to next read
     uint8_t read_offset;    // Bit offset of read pointer
     uint8_t size;           // Size of allocated memory
-    uint8_t index;          // Size of used memory
+    uint8_t index;          // Size of written memory
+    uint8_t read_index;     // Size of read memory
 } data;
 
 void bits_write(data *, uint32_t, uint8_t);

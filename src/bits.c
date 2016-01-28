@@ -26,7 +26,7 @@ void bits_write(data *d, uint32_t value, uint8_t length)
         *d->curr |= lvalue;
     }
     d->offset = (d->offset + length) % BUFFER_SIZE;
-    // data_expand(d);
+    data_expand(d);
 }
 
 uint32_t bits_read(data *d, uint8_t length)
@@ -37,14 +37,17 @@ uint32_t bits_read(data *d, uint8_t length)
         value <<= (BUFFER_SIZE - d->read_offset - length);
         value &= *d->read_curr;
         value >>= (BUFFER_SIZE - d->read_offset - length);
-        if (length + d->read_offset == BUFFER_SIZE)
+        if (length + d->read_offset == BUFFER_SIZE) {
             d->read_curr++;
+            d->read_index++;
+        }
     } else {
         uint32_t rmask = 0xffffffff;
         rmask >>= (d->read_offset);
         rmask &= *d->read_curr;
         rmask <<= (length + d->read_offset - BUFFER_SIZE);
         d->read_curr++;
+        d->read_index++;
         value = rmask;
         uint32_t lmask = 0xffffffff;
         lmask <<= (2 * BUFFER_SIZE - length - d->read_offset);
@@ -62,7 +65,7 @@ uint32_t bits_read(data *d, uint8_t length)
 void bits_print(data *d)
 {
     int j = 0;
-    int len = d->index + 1;
+    int len = d->size; // d->index + 1;
     printf("Size: %d bytes\n", data_size(d));
     for (; j < len; ++j) {
         uint32_t b = d->head[j];
@@ -138,7 +141,8 @@ void data_expand(data *d)
         uint32_t *new_buffer = (uint32_t *) realloc(d->head, d->size * 2 * BUFFER_SIZE / 8);
         d->head = new_buffer;
         d->curr = new_buffer += d->index;
-        memset((void * ) d->head[(int) d->size], 0, d->size * BUFFER_SIZE / 8);
+        d->read_curr = new_buffer += d->read_index;
+        //memset((void * ) d->curr + 1, 0, d->size * BUFFER_SIZE / 16);
         d->size *= 2;
     }
 }
