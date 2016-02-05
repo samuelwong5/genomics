@@ -43,6 +43,7 @@ void BitBuffer::write(uint32_t value, uint8_t length)
         *write_it |= lvalue;
     }
     write_offset = (write_offset + length) % BUFFER_SIZE;
+    expand();
 }
 
 uint32_t BitBuffer::read(uint8_t length)
@@ -80,7 +81,7 @@ void BitBuffer::print(void)
     std::vector<uint32_t>::iterator it = buffer.begin();
     printf("Size: %d bytes\n", size());
     int i = 0;
-    for (; i < write_index - 1; i++) {
+    for (; i < write_index; i++) {
         uint32_t b = *it;
         uint32_t mask = 1 << (BUFFER_SIZE - 1);
         printf("%2d: ", i);
@@ -89,6 +90,7 @@ void BitBuffer::print(void)
             b <<= 1;
         }
         ++it;
+        printf("\n");
     }
     if (write_offset != 0) {
         printf("%2d: ", i);
@@ -97,7 +99,8 @@ void BitBuffer::print(void)
         for (int j = 0; j < write_offset; ++j) {
             printf("%u", b&mask ? 1 : 0);
             b <<= 1;
-        }
+        }     
+        printf("\n");
     }
 }
 
@@ -112,29 +115,18 @@ int BitBuffer::read_is_end(void)
     return read_offset >=write_offset && write_it == read_it;
 }
 
-void BitBuffer::data_expand(void)
+void BitBuffer::expand(void)
 {
-    // Double the buffer length if near capacity
-    //if (index >= 0.9 * size) {
-    //    uint32_t *new_buffer = (uint32_t *) realloc(buffer, size * 2 * BUFFER_SIZE / 8);
-    //    buffer = new_buffer;
-    //    write_it = new_buffer +=write_index;
-    //    read_it = new_buffer += read_index;
-    //    //memset((void * ) write_it + 1, 0, size * BUFFER_SIZE / 16);
-    //    alloc_size *= 2;
-   // }
-}
-
-int main ()
-{
-    BitBuffer b;
-    b.write(10, 4);
-    uint32_t t = b.read(4);
-    b.write(12,4);
-    b.write(200,32);
-    printf("%d\n", t);
-    t = b.read(4);
-    printf("%d\n", t);
-    t = b.read(32);
-    printf("%d\n", t);
+    if (write_index + 1 >= alloc_size) {
+        alloc_size = alloc_size * 2;
+        try {
+            buffer.resize(alloc_size, 0);           
+        } catch (const std::bad_alloc&) {
+            exit(-1);
+        }
+        write_it = buffer.begin();
+        std::advance(write_it, write_index);
+        read_it = buffer.begin();
+        std::advance(read_it, read_index);
+   }
 }
