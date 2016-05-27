@@ -7,9 +7,11 @@ class AutoIncrementingFieldEncoder : public MetadataFieldEncoder {
     private:
         uint32_t current;
     public:
-        AutoIncrementingFieldEncoder(std::shared_ptr<BitBuffer>, uint32_t);
-        void encode(std::string);
+        AutoIncrementingFieldEncoder(const std::shared_ptr<BitBuffer>&, uint32_t);
+        void decode_metadata(void);
+        void encode_metadata(void);
         void decode(std::stringstream&);
+        void encode(std::string);
 };
 
 #endif

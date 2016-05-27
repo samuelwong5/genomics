@@ -7,9 +7,11 @@ class ConstantAlphanumericFieldEncoder : public MetadataFieldEncoder {
     private:
         std::string value;
     public:
-        ConstantAlphanumericFieldEncoder(std::shared_ptr<BitBuffer>, std::string);
-        void encode(std::string);
+        ConstantAlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>&, std::string);
+        void decode_metadata(void);
+        void encode_metadata(void);
         void decode(std::stringstream&);
+        void encode(std::string);
 };
 
 #endif

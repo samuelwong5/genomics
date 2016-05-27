@@ -15,7 +15,9 @@ class AlphanumericFieldEncoder : public MetadataFieldEncoder {
         std::vector<std::string> map;
         
     public:
-        AlphanumericFieldEncoder(std::shared_ptr<BitBuffer>, uint32_t, bool, std::set<std::string>);
+        AlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>&, uint32_t, bool, std::set<std::string>);
+        void decode_metadata(void);
+        void encode_metadata(void);
         void encode(std::string);
         void decode(std::stringstream&);
 };

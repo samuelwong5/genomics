@@ -1,9 +1,26 @@
 #include "numericfieldencoder.hpp"
 
-NumericFieldEncoder::NumericFieldEncoder(std::shared_ptr<BitBuffer> buffer, uint32_t w, bool i) 
+NumericFieldEncoder::NumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer, uint32_t w, bool i) 
     : MetadataFieldEncoder(buffer), width(w), increment(i), prev(0)
 {
     
+}
+
+void 
+NumericFieldEncoder::decode_metadata(void)
+{
+    // Field type = 1
+    width = buffer->read(14);
+}
+
+void 
+NumericFieldEncoder::encode_metadata(void)
+{
+    // Field type = 10
+    buffer->write(2, 4);
+    
+    // Value
+    buffer->write(width, 12);
 }
 
 void 

@@ -11,11 +11,14 @@
 
 class MetadataFieldEncoder {
     protected:
-      std::shared_ptr<BitBuffer> buffer;
+      const std::shared_ptr<BitBuffer> buffer;
     public:
-      MetadataFieldEncoder(std::shared_ptr<BitBuffer>);
-      virtual void decode(std::stringstream& ss) { };
-      virtual void encode(std::string s) { };
+      MetadataFieldEncoder(const std::shared_ptr<BitBuffer>&);
+      virtual void decode_metadata(void) = 0;
+      virtual void encode_metadata(void) = 0;
+      virtual void decode(std::stringstream&) = 0;
+      virtual void encode(std::string) = 0;
+      std::shared_ptr<BitBuffer> get_buffer(void) { return buffer; }
 };
 
 #endif

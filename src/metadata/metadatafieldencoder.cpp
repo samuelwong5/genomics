@@ -2,7 +2,7 @@
 
 int tokens = 10;
 
-MetadataFieldEncoder::MetadataFieldEncoder(std::shared_ptr<BitBuffer> b) : buffer(b)
+MetadataFieldEncoder::MetadataFieldEncoder(const std::shared_ptr<BitBuffer>& b) : buffer(b)
 {
 
 }

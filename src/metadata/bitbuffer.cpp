@@ -130,3 +130,24 @@ void BitBuffer::expand(void)
         std::advance(read_it, read_index);
    }
 }
+
+void 
+BitBuffer::write_to_file(std::string filename)
+{
+    std::ofstream fout(filename, std::ios::out | std::ios::binary);
+    fout.write((char*)&buffer[0], (write_index + 1) * 4);    
+}
+
+void 
+BitBuffer::read_from_file(std::string filename)
+{
+    std::ifstream fs(filename, std::ifstream::ate | std::ifstream::binary);
+    
+    std::streamsize size = fs.tellg();
+    std::cout << "Filesize: " << size << "\n";
+    buffer.resize(size / 4);
+    std::cout << "Buffer size: " << buffer.size() << "\n";
+    fs.seekg( 0, std::ios::beg );
+    write_index = size / 4;
+    fs.read((char*)buffer.data(), size); 
+}
