@@ -1,13 +1,13 @@
 CC = g++
 CFLAGS = -std=c++11 -O2 -Wall
 
-all: main
+all: metadataencoder
 
-main: main.o metadatafieldencoder.o alphanumericfieldencoder.o autoincrementingfieldencoder.o constantalphanumericfieldencoder.o numericfieldencoder.o bitbuffer.o
-	${CC} -g main.o metadatafieldencoder.o alphanumericfieldencoder.o autoincrementingfieldencoder.o constantalphanumericfieldencoder.o numericfieldencoder.o bitbuffer.o -o main
+metadataencoder: metadataencoder.o metadatafieldencoder.o alphanumericfieldencoder.o autoincrementingfieldencoder.o constantalphanumericfieldencoder.o numericfieldencoder.o bitbuffer.o
+	${CC} -g metadataencoder.o metadatafieldencoder.o alphanumericfieldencoder.o autoincrementingfieldencoder.o constantalphanumericfieldencoder.o numericfieldencoder.o bitbuffer.o -o metadataencoder
     
-main.o: main.cpp
-	${CC} ${CFLAGS} -c main.cpp
+metadataencoder.o: metadataencoder.cpp
+	${CC} ${CFLAGS} -c metadataencoder.cpp
     
 metadatafieldencoder.o: metadatafieldencoder.cpp metadatafieldencoder.hpp
 	${CC} ${CFLAGS} -c metadatafieldencoder.cpp
