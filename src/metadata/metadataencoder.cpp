@@ -90,7 +90,6 @@ metadata_analyze(std::ifstream &file, std::vector<char>& sep, std::vector<Metada
             values[i].insert(v[i]);
     }
     b->write(num_fields, 8);
-    b->write(entries, 24);
 
     std::getline(file, metadata);
     std::getline(file, metadata);
@@ -107,6 +106,8 @@ metadata_analyze(std::ifstream &file, std::vector<char>& sep, std::vector<Metada
         std::getline(file, metadata);      
     }
     
+    b->write(entries - remaining - 1, 24);
+    std::cout << "  - Entries: " << entries - remaining - 1 << "\n";
     
     for (auto it = values.begin(); it != values.end(); it++)
     {
@@ -204,14 +205,20 @@ decode_separators(std::vector<char>& sep, const std::shared_ptr<BitBuffer>& b, i
 }
 
 void
-decode(std::string ifilename, std::string ofilename = std::string())
+decode(std::string ifilename, std::string ofilename = std::string(), int index = 1, int len = -1)
 { 
     std::cout << "[ STARTING DECOMPRESSION ]\n";
     std::shared_ptr<BitBuffer> b(new BitBuffer);
     b->read_from_file(ifilename);
     int num_fields = b->read(8);
     int entries = b->read(24);
-    std::cout << "  - Entries: " << entries << "\n";
+    std::cout << " - Total Entries: " << entries << "\n";
+    if (len > 0)
+    {
+        int end_index = entries < index + len ? entries : index + len;
+        std::cout << " - Decompressing entries " << index << " to " << end_index << "\n";
+        entries = entries < index + len ? entries - index : len;
+    }
     std::vector<MetadataFieldEncoder*> fields;
     for (int i = 0; i < num_fields; i++)
     {
@@ -243,7 +250,7 @@ decode(std::string ifilename, std::string ofilename = std::string())
             }
             case 3:
             {
-                enc = new AutoIncrementingFieldEncoder(b);
+                enc = new AutoIncrementingFieldEncoder(b, index - 1);
                 enc->decode_metadata();
                 fields.push_back(enc);
                 break;
@@ -265,6 +272,10 @@ decode(std::string ifilename, std::string ofilename = std::string())
         buf = of.rdbuf();
     }
     std::ostream os(buf);
+    uint32_t entry_width = 0;
+    for (int i = 0; i < num_fields; i++)
+        entry_width += fields[i]->get_width();
+    b->read_seek(entry_width * (index - 1)); 
     while (entries --> 0)
     {
         //os << "@";
@@ -281,7 +292,6 @@ void
 encode(std::string ifilename, std::string ofilename, int entries = 1)
 {
     std::cout << "[ STARTING COMPRESSION ]\n";
-    std::cout << "  - Entries: " << entries << "\n";
     // Encode sequence identifiers metadata
     std::shared_ptr<BitBuffer> b(new BitBuffer);
     std::ifstream file(ifilename, std::ifstream::in);
@@ -330,7 +340,7 @@ int main(int argc, char** argv)
 {
     if (argc < 3)
     {
-        std::cout << "Usage: metadataencoder [--encode|--decode] [FILE] [entries]" << std::endl;
+        std::cout << "Usage:\n  metadataencoder --encode [FILE] [entries]\n metadataencoder --decode [FILE] [start] [length]" << std::endl;
         return -1;
     }
     int rows = argc >= 4 ? atoi(argv[3]) : 1000;
@@ -344,8 +354,9 @@ int main(int argc, char** argv)
     else if (strncmp(argv[1], "--decode", 8) == 0)
     {  
         ofn.erase(ofn.end()-5, ofn.end());
-        decode(ifn, ofn);
+        if (argc >= 5)
+            decode(ifn, ofn, atoi(argv[3]), atoi(argv[4]));
+        else
+            decode(ifn, ofn);
     } 
-    
-    //decode(ofn);
 }

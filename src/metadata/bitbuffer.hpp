@@ -34,8 +34,9 @@ class BitBuffer {
     void print(void);                           // Print the value
     int read_is_end(void);                      // Check if read has ended
     int size(void);                             // Returns size of the buffer in bytes
-    void write_to_file(std::string);
-    void read_from_file(std::string);
+    void write_to_file(std::string);            // Write buffer to file
+    void read_from_file(std::string);           // Read buffer from file
+    void read_seek(uint32_t);                   // Seek read pointer
 };
 
 #endif

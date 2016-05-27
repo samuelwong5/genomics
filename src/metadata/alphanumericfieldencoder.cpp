@@ -1,5 +1,17 @@
 #include "alphanumericfieldencoder.hpp"
 
+int 
+ceillog(int max, int base)
+{
+    int w = 1;
+    int curr = base;
+    while (curr <= max)
+    {
+        w++;
+        curr *= base;
+    }
+    return w;
+}
 
 AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer)
     : MetadataFieldEncoder(buffer)
@@ -8,7 +20,7 @@ AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuff
 }
 
 AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer, uint32_t w = 0, bool em = false, std::set<std::string> values = {})
-    : MetadataFieldEncoder(buffer), width(w), enable_map(em)
+    : MetadataFieldEncoder(buffer), enable_map(em)
 {
     if (enable_map)
     {
@@ -16,6 +28,12 @@ AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuff
         {
             map.push_back(*it);
         }
+        mappings = w;
+        width = ceillog(mappings, 2);
+    }
+    else
+    {
+        width = w;
     }
 }
 
@@ -27,12 +45,14 @@ AlphanumericFieldEncoder::decode_metadata(void)
     {
         enable_map = true;
     }
-    width = buffer->read(12);
+    
        
     // Read mapped values
     if (enable_map)
     {
-        for (uint32_t i = 0; i < width; i++)
+        mappings = buffer->read(12);
+        width = ceillog(mappings, 2);
+        for (uint32_t i = 0; i < mappings; i++)
         {
             std::string s("");
             int curr;
@@ -42,6 +62,10 @@ AlphanumericFieldEncoder::decode_metadata(void)
             }
             map.push_back(s);
         }
+    }
+    else
+    {
+        width = buffer->read(12);
     }
 }
 
@@ -55,7 +79,7 @@ AlphanumericFieldEncoder::encode_metadata(void)
     if (enable_map)
     {
         buffer->write(2,2);
-        buffer->write(width, 12);
+        buffer->write(mappings, 12);
         for (std::vector<std::string>::iterator it = map.begin(); it != map.end(); ++it)
         {
             for (std::string::iterator mit = it->begin(); mit != it->end(); ++mit)

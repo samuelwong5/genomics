@@ -17,6 +17,7 @@ void
 NumericFieldEncoder::decode_metadata(void)
 {
     // Field type = 1
+    increment = false;
     width = buffer->read(14);
 }
 

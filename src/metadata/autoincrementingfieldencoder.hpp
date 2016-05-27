@@ -13,6 +13,7 @@ class AutoIncrementingFieldEncoder : public MetadataFieldEncoder {
         void encode_metadata(void);
         void decode(std::ostream&);
         void encode(std::string);
+        uint32_t get_width(void) { return 0; }
 };
 
 #endif

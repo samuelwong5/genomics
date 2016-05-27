@@ -19,6 +19,7 @@ class MetadataFieldEncoder {
       virtual void decode(std::ostream&) = 0;
       virtual void encode(std::string) = 0;
       std::shared_ptr<BitBuffer> get_buffer(void) { return buffer; }
+      virtual uint32_t get_width(void) = 0;
 };
 
 #endif

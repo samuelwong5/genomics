@@ -80,7 +80,7 @@ void BitBuffer::print(void)
 {
     std::vector<uint32_t>::iterator it = buffer.begin();
     printf("Size: %d bytes\n", size());
-    int i = 0;
+    uint32_t i = 0;
     for (; i < write_index; i++) {
         uint32_t b = *it;
         uint32_t mask = 1 << (BUFFER_SIZE - 1);
@@ -96,7 +96,7 @@ void BitBuffer::print(void)
         printf("%2d: ", i);
         uint32_t b = *it;
         uint32_t mask = 1 << (BUFFER_SIZE - 1);
-        for (int j = 0; j < write_offset; ++j) {
+        for (uint32_t j = 0; j < write_offset; ++j) {
             printf("%u", b&mask ? 1 : 0);
             b <<= 1;
         }     
@@ -128,7 +128,24 @@ void BitBuffer::expand(void)
         std::advance(write_it, write_index);
         read_it = buffer.begin();
         std::advance(read_it, read_index);
-   }
+    }
+}
+
+void
+BitBuffer::read_seek(uint32_t bits)
+{
+    //std::cout << "Read_seek " << bits << "\n";
+    //std::cout << "Old read_offset " << read_offset << " and read_index " << read_index << "\n";
+    read_offset += bits % 32;
+    read_index += bits / 32;
+    //std::cout << "New read_offset " << read_offset << " and read_index " << read_index << "\n";
+    if (read_offset >= 32)
+    {
+        read_offset -= 32;
+        read_index++;
+    }
+    read_it = buffer.begin();
+    std::advance(read_it, read_index);
 }
 
 void 

@@ -16,7 +16,7 @@ void
 AutoIncrementingFieldEncoder::decode_metadata(void)
 {
     // Field type = 1
-    current = buffer->read(30);
+    current += buffer->read(30);
 }
 
 void 

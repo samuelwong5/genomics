@@ -11,6 +11,7 @@
 class AlphanumericFieldEncoder : public MetadataFieldEncoder {
     private:
         uint32_t width;
+        uint32_t mappings;
         bool enable_map;       // 1 if use int->string mapping, 0 otherwise
         std::vector<std::string> map;
         
@@ -21,6 +22,7 @@ class AlphanumericFieldEncoder : public MetadataFieldEncoder {
         void encode_metadata(void);
         void encode(std::string);
         void decode(std::ostream&);
+        uint32_t get_width(void) { return width; }
 };
 
 #endif
