@@ -1,5 +1,12 @@
 #include "numericfieldencoder.hpp"
 
+
+NumericFieldEncoder::NumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer)
+    : MetadataFieldEncoder(buffer)
+{
+        
+}
+
 NumericFieldEncoder::NumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer, uint32_t w, bool i) 
     : MetadataFieldEncoder(buffer), width(w), increment(i), prev(0)
 {
@@ -17,7 +24,7 @@ void
 NumericFieldEncoder::encode_metadata(void)
 {
     // Field type = 10
-    buffer->write(2, 4);
+    buffer->write(8, 4);
     
     // Value
     buffer->write(width, 12);
@@ -39,7 +46,7 @@ NumericFieldEncoder::encode(std::string s)
 }
 
 void
-NumericFieldEncoder::decode(std::stringstream& ss)
+NumericFieldEncoder::decode(std::ostream& ss)
 {
     int delta = (int) buffer->read(width);
     if (increment)

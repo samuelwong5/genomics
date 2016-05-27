@@ -1,5 +1,12 @@
 #include "alphanumericfieldencoder.hpp"
 
+
+AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer)
+    : MetadataFieldEncoder(buffer)
+{
+        
+}
+
 AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer, uint32_t w = 0, bool em = false, std::set<std::string> values = {})
     : MetadataFieldEncoder(buffer), width(w), enable_map(em)
 {
@@ -27,9 +34,9 @@ AlphanumericFieldEncoder::decode_metadata(void)
     {
         for (uint32_t i = 0; i < width; i++)
         {
-            std::string s;
+            std::string s("");
             int curr;
-            while (!(curr = buffer->read(8)))
+            while (curr = buffer->read(8))
             {
                 s.append(1, curr);
             }
@@ -97,7 +104,7 @@ AlphanumericFieldEncoder::encode(std::string s)
 }
 
 void
-AlphanumericFieldEncoder::decode(std::stringstream& ss)
+AlphanumericFieldEncoder::decode(std::ostream& ss)
 {
     if (enable_map)
     {

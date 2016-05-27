@@ -76,7 +76,7 @@ metadata_analyze(std::ifstream &file, std::vector<char>& sep, std::vector<Metada
     metadata.erase(0,1);
     metadata_separators(metadata, sep);    // List of Separators in order  
     int num_fields = sep.size() + 1;
-    std::cout << "Fields: " << num_fields << std::endl;
+    std::cout << "  - Analyzing Fields: [" << num_fields << "]\n";
     
     // Initialize set of values for each field to count the number of 
     // total values
@@ -90,7 +90,8 @@ metadata_analyze(std::ifstream &file, std::vector<char>& sep, std::vector<Metada
             values[i].insert(v[i]);
     }
     b->write(num_fields, 8);
-    b->write(0, 24);
+    b->write(entries, 24);
+
     std::getline(file, metadata);
     std::getline(file, metadata);
     std::getline(file, metadata); 
@@ -112,7 +113,7 @@ metadata_analyze(std::ifstream &file, std::vector<char>& sep, std::vector<Metada
         std::string str("1");
         if (it->size() == 1)
         {
-            std::cout << "Constant Alphanumeric: " << *it->begin() << std::endl;
+            std::cout << "    - Constant Alphanumeric: " << *it->begin() << std::endl;
             fields.push_back(new ConstantAlphanumericFieldEncoder(b, *it->begin()));
         }
         else if (it->size() > 0)
@@ -140,21 +141,21 @@ metadata_analyze(std::ifstream &file, std::vector<char>& sep, std::vector<Metada
             {
                 if (max == entries)
                 {
-                    std::cout << "Auto Incrementing" << std::endl;    
+                    std::cout << "    - Auto Incrementing" << std::endl;    
                     fields.push_back(new AutoIncrementingFieldEncoder(b, 1));
                 }
                 else 
                 {
-                    std::cout << "Numeric  (Values: " << it->size() << " |  Max: " << max << ")\n";
+                    std::cout << "    - Numeric  (Values: " << it->size() << " |  Max: " << max << ")\n";
                     // Non-incremental
                     fields.push_back(new NumericFieldEncoder(b, ceil_log(max + 1, 2), false));
                 }
             }        
             else 
             {
-                std::cout << "Alphanumeric  (Values: " << it->size() << ")\n";
+                std::cout << "    - Alphanumeric  (Values: " << it->size() << ")\n";
                 int bits_per_char = 8;
-                if (it->size() * 10 < entries) // Enable mapping
+                if (true || it->size() * 10 < entries) // Enable mapping
                 {
                     fields.push_back(new AlphanumericFieldEncoder(b, it->size(), true, *it));
                 }
@@ -204,13 +205,83 @@ decode_separators(std::vector<char>& sep, const std::shared_ptr<BitBuffer>& b, i
 
 void
 decode(std::string ifilename, std::string ofilename = std::string())
-{
-    
+{ 
+    std::cout << "[ STARTING DECOMPRESSION ]\n";
+    std::shared_ptr<BitBuffer> b(new BitBuffer);
+    b->read_from_file(ifilename);
+    int num_fields = b->read(8);
+    int entries = b->read(24);
+    std::cout << "  - Entries: " << entries << "\n";
+    std::vector<MetadataFieldEncoder*> fields;
+    for (int i = 0; i < num_fields; i++)
+    {
+        MetadataFieldEncoder *enc;
+        int fieldtype = b->read(2);
+        //std::cout << "Fieldtype: " << fieldtype << "\n";
+        switch (fieldtype)
+        {
+            case 0: 
+            {
+                enc = new ConstantAlphanumericFieldEncoder(b);
+                enc->decode_metadata();
+                fields.push_back(enc);
+                break; 
+            }
+            case 1:
+            {
+                enc = new AlphanumericFieldEncoder(b);
+                enc->decode_metadata();
+                fields.push_back(enc);
+                break;
+            }
+            case 2:
+            {
+                enc = new NumericFieldEncoder(b);
+                enc->decode_metadata();
+                fields.push_back(enc);
+                break;
+            }
+            case 3:
+            {
+                enc = new AutoIncrementingFieldEncoder(b);
+                enc->decode_metadata();
+                fields.push_back(enc);
+                break;
+            }
+        }
+    }
+    std::vector<char> sep;
+    decode_separators(sep, b, num_fields - 1);
+    sep.push_back('\n');
+    std::ofstream of;
+    std::streambuf *buf;
+    if (ofilename.empty())
+    {
+        buf = std::cout.rdbuf();
+    }
+    else
+    {
+        of.open(ofilename);
+        buf = of.rdbuf();
+    }
+    std::ostream os(buf);
+    while (entries --> 0)
+    {
+        //os << "@";
+        for (int i = 0; i < num_fields; i++)
+        {
+            fields[i]->decode(os);
+            os << sep[i];
+        }
+    }
+    std::cout << "[ FINISHED DECOMPRESSION ]\n";
 }
 
 void 
-encode(std::string ifilename, std::string ofilename = std::string(), int entries = 1)
+encode(std::string ifilename, std::string ofilename, int entries = 1)
 {
+    std::cout << "[ STARTING COMPRESSION ]\n";
+    std::cout << "  - Entries: " << entries << "\n";
     // Encode sequence identifiers metadata
     std::shared_ptr<BitBuffer> b(new BitBuffer);
     std::ifstream file(ifilename, std::ifstream::in);
@@ -230,8 +301,10 @@ encode(std::string ifilename, std::string ofilename = std::string(), int entries
     // Compress sequence identifiers!       
     int num_fields = fields.size();
     std::string metadata;
-    while (entries --> 0 && std::getline(file, metadata))
+    for (int rem = 0; rem < entries && std::getline(file, metadata); rem++)
     {
+        if (entries >= 100 && rem % (entries / 100) == 0)
+            printf("\r  - Compressing [%3d%]", rem * 100 / entries);
         metadata.erase(0,1);
         std::vector<std::string> v;
         split(metadata, v);       
@@ -242,6 +315,7 @@ encode(std::string ifilename, std::string ofilename = std::string(), int entries
         std::getline(file, metadata);      
     }
     b->write_to_file(ofilename);
+    std::cout << "\r  - Compressing [100%]\n  - Compressed size: " << b->size() << " bytes\n";
     
     // Cleanup
     for (auto it = fields.begin(); it != fields.end(); it++)
@@ -249,18 +323,29 @@ encode(std::string ifilename, std::string ofilename = std::string(), int entries
         delete *it;
     }
     file.close();
+    std::cout << "[ FINISHED COMPRESSION ]\n";
 }
 
 int main(int argc, char** argv)
 {
-    if (argc < 2)
+    if (argc < 3)
     {
-        std::cout << "Usage: metadataencoder [FILE] [entries]" << std::endl;
+        std::cout << "Usage: metadataencoder [--encode|--decode] [FILE] [entries]" << std::endl;
         return -1;
     }
-    int rows = argc >= 3 ? atoi(argv[2]) : 1000;
-    std::string ifn(argv[1]);
+    int rows = argc >= 4 ? atoi(argv[3]) : 1000;
+    std::string ifn(argv[2]);
     std::string ofn(ifn);
-    ofn.append(".seqid");
-    encode(ifn, ofn, rows);
+    if (strncmp(argv[1], "--encode", 8) == 0)
+    {
+        ofn.append(".seqid.cmprs");
+        encode(ifn, ofn, rows);
+    } 
+    else if (strncmp(argv[1], "--decode", 8) == 0)
+    {  
+        ofn.erase(ofn.end()-5, ofn.end());
+        decode(ifn, ofn);
+    } 
+    
+    //decode(ofn);
 }

@@ -3,9 +3,9 @@
 
 #include <iostream>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <vector>
+#include <ostream>
 
 #include "bitbuffer.hpp"
 
@@ -16,7 +16,7 @@ class MetadataFieldEncoder {
       MetadataFieldEncoder(const std::shared_ptr<BitBuffer>&);
       virtual void decode_metadata(void) = 0;
       virtual void encode_metadata(void) = 0;
-      virtual void decode(std::stringstream&) = 0;
+      virtual void decode(std::ostream&) = 0;
       virtual void encode(std::string) = 0;
       std::shared_ptr<BitBuffer> get_buffer(void) { return buffer; }
 };

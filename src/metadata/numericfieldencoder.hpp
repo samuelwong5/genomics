@@ -14,10 +14,11 @@ class NumericFieldEncoder : public MetadataFieldEncoder {
         uint32_t prev;
         
     public:
+        NumericFieldEncoder(const std::shared_ptr<BitBuffer>&);
         NumericFieldEncoder(const std::shared_ptr<BitBuffer>&, uint32_t, bool);
         void decode_metadata(void);
         void encode_metadata(void);
-        void decode(std::stringstream&);
+        void decode(std::ostream&);
         void encode(std::string);
 };
 

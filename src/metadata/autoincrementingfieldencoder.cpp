@@ -1,5 +1,11 @@
 #include "autoincrementingfieldencoder.hpp"
 
+AutoIncrementingFieldEncoder::AutoIncrementingFieldEncoder(const std::shared_ptr<BitBuffer>& buffer)
+    : MetadataFieldEncoder(buffer)
+{
+        
+}
+
 AutoIncrementingFieldEncoder::AutoIncrementingFieldEncoder(const std::shared_ptr<BitBuffer>& buffer, uint32_t init) 
     : MetadataFieldEncoder(buffer), current(init)
 {
@@ -30,7 +36,7 @@ AutoIncrementingFieldEncoder::encode(std::string s)
 }
 
 void
-AutoIncrementingFieldEncoder::decode(std::stringstream& ss)
+AutoIncrementingFieldEncoder::decode(std::ostream& ss)
 {
     ss << current++;
 }

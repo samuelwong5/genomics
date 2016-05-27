@@ -25,7 +25,7 @@ int main(void)
     b->print();
     n.encode("127");
     b->print();
-    std::stringstream oss;
+    std::ostream oss;
     for (int i = 0; i < 12; i++)
         n.decode(oss);
     std::cout << oss.str() << "hello\n";

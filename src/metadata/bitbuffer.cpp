@@ -142,11 +142,12 @@ void
 BitBuffer::read_from_file(std::string filename)
 {
     std::ifstream fs(filename, std::ifstream::ate | std::ifstream::binary);
-    
     std::streamsize size = fs.tellg();
-    std::cout << "Filesize: " << size << "\n";
+    //std::cout << "Filesize: " << size << "\n";
     buffer.resize(size / 4);
-    std::cout << "Buffer size: " << buffer.size() << "\n";
+    write_it = buffer.begin();
+    read_it = buffer.begin();
+    //std::cout << "Buffer size: " << buffer.size() << "\n";
     fs.seekg( 0, std::ios::beg );
     write_index = size / 4;
     fs.read((char*)buffer.data(), size); 
