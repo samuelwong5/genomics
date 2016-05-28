@@ -1,41 +1,19 @@
-#include <fstream>
-#include <vector>
-#include <iostream>
-#include <set>
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
+#include <iostream>
+#include <fstream>
+#include <set>
+#include <vector>
 
 #include "metadatafieldencoder.hpp"
-#include "autoincrementingfieldencoder.hpp"
 #include "alphanumericfieldencoder.hpp"
+#include "autoincrementingfieldencoder.hpp"
 #include "constantalphanumericfieldencoder.hpp"
 #include "numericfieldencoder.hpp"
 #include "bitbuffer.hpp"
+#include "encodeutil.hpp"
 
-int 
-ceil_log(int max, int base)
-{
-    int w = 1;
-    int curr = base;
-    while (curr <= max)
-    {
-        w++;
-        curr *= base;
-    }
-    return w;
-}
-
-bool 
-isNumeric(const std::string & s)
-{
-   if(s.empty() || ((!isdigit(s[0])) && (s[0] != '-') && (s[0] != '+'))) return false ;
-
-   char * p ;
-   strtol(s.c_str(), &p, 10) ;
-
-   return (*p == 0) ;
-}
 
 void
 metadata_separators(std::string metadata, std::vector<char>& separators)
@@ -47,6 +25,7 @@ metadata_separators(std::string metadata, std::vector<char>& separators)
     }
 }
 
+
 void 
 split(std::string& str, std::vector<std::string>& parts) {
   size_t start, end = 0;
@@ -54,13 +33,13 @@ split(std::string& str, std::vector<std::string>& parts) {
   while (end < str.size()) {
     start = end;
     while (start < str.size() && (delim.find(str[start]) != std::string::npos)) {
-      start++;  // skip initial whitespace
+      start++;
     }
     end = start;
     while (end < str.size() && (delim.find(str[end]) == std::string::npos)) {
-      end++; // skip to end of word
+      end++;
     }
-    if (end-start != 0) {  // just ignore zero-length std::strings.
+    if (end-start != 0) {
       parts.push_back(std::string(str, start, end-start));
     }
   }
@@ -120,22 +99,19 @@ metadata_analyze(std::ifstream &file, std::vector<char>& sep, std::vector<Metada
         else if (it->size() > 0)
         {
             int max = 0;
-            //int prev = -1;
-            //int max_delta = 0;
             bool numeric = true;
             for (auto sit = it->begin(); sit != it->end(); sit++)
             {
-                if (!numeric || !isNumeric(*sit))
+                if (!numeric || !EncodeUtil::is_numeric(*sit))
                 {
                     numeric = false;
-                    max = ceil_log(max, 10);
+                    max = EncodeUtil::ceil_log(max, 10);
                     max = max > sit->length() ? max : sit->length();
                 }
                 else
                 {
                     int val = atoi(sit->c_str());
-                    max = max > val ? max : val;
-                    //prev = val;                        
+                    max = max > val ? max : val;                     
                 }
             }
             if (numeric)
@@ -149,7 +125,7 @@ metadata_analyze(std::ifstream &file, std::vector<char>& sep, std::vector<Metada
                 {
                     std::cout << "    - Numeric  (Values: " << it->size() << " |  Max: " << max << ")\n";
                     // Non-incremental
-                    fields.push_back(new NumericFieldEncoder(b, ceil_log(max + 1, 2), false));
+                    fields.push_back(new NumericFieldEncoder(b, EncodeUtil::ceil_log(max + 1, 2), false));
                 }
             }        
             else 
@@ -168,6 +144,7 @@ metadata_analyze(std::ifstream &file, std::vector<char>& sep, std::vector<Metada
         }
     }
 }
+
 
 void
 encode_separators(std::vector<char>& sep, const std::shared_ptr<BitBuffer>& b)
@@ -196,6 +173,7 @@ encode_separators(std::vector<char>& sep, const std::shared_ptr<BitBuffer>& b)
     }
 }
 
+
 void 
 decode_separators(std::vector<char>& sep, const std::shared_ptr<BitBuffer>& b, int num)
 {
@@ -203,6 +181,7 @@ decode_separators(std::vector<char>& sep, const std::shared_ptr<BitBuffer>& b, i
     while (num --> 0)
         sep.push_back(smap[b->read(3)]);
 }
+
 
 void
 decode(std::string ifilename, std::string ofilename = std::string(), int index = 1, int len = -1)
@@ -224,7 +203,6 @@ decode(std::string ifilename, std::string ofilename = std::string(), int index =
     {
         MetadataFieldEncoder *enc;
         int fieldtype = b->read(2);
-        //std::cout << "Fieldtype: " << fieldtype << "\n";
         switch (fieldtype)
         {
             case 0: 
@@ -278,7 +256,7 @@ decode(std::string ifilename, std::string ofilename = std::string(), int index =
     b->read_seek(entry_width * (index - 1)); 
     while (entries --> 0)
     {
-        //os << "@";
+        os << "@";
         for (int i = 0; i < num_fields; i++)
         {
             fields[i]->decode(os);
@@ -287,6 +265,7 @@ decode(std::string ifilename, std::string ofilename = std::string(), int index =
     }
     std::cout << "[ FINISHED DECOMPRESSION ]\n";
 }
+
 
 void 
 encode(std::string ifilename, std::string ofilename, int entries = 1)
@@ -335,6 +314,7 @@ encode(std::string ifilename, std::string ofilename, int entries = 1)
     file.close();
     std::cout << "[ FINISHED COMPRESSION ]\n";
 }
+
 
 int main(int argc, char** argv)
 {

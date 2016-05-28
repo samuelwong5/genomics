@@ -1,11 +1,12 @@
 #ifndef NFE_HPP
 #define NFE_HPP
 
-#include "metadatafieldencoder.hpp"
-
 #include <set>
 #include <tuple>
 #include <vector>
+
+#include "metadatafieldencoder.hpp"
+
 
 class NumericFieldEncoder : public MetadataFieldEncoder {
     private:

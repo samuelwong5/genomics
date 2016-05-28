@@ -3,9 +3,11 @@
 
 #include "metadatafieldencoder.hpp"
 
+
 class AutoIncrementingFieldEncoder : public MetadataFieldEncoder {
     private:
         uint32_t current;
+        
     public:
         AutoIncrementingFieldEncoder(const std::shared_ptr<BitBuffer>&);
         AutoIncrementingFieldEncoder(const std::shared_ptr<BitBuffer>&, uint32_t);

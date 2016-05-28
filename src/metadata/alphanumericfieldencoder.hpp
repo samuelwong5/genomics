@@ -1,18 +1,20 @@
 #ifndef ANFE_HPP
 #define ANFE_HPP
 
-#include "metadatafieldencoder.hpp"
-
 #include <cstring>
 #include <set>
 #include <tuple>
 #include <vector>
 
+#include "metadatafieldencoder.hpp"
+#include "encodeutil.hpp"
+
+
 class AlphanumericFieldEncoder : public MetadataFieldEncoder {
     private:
         uint32_t width;
         uint32_t mappings;
-        bool enable_map;       // 1 if use int->string mapping, 0 otherwise
+        bool enable_map;       
         std::vector<std::string> map;
         
     public:

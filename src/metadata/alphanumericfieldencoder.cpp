@@ -1,23 +1,12 @@
 #include "alphanumericfieldencoder.hpp"
 
-int 
-ceillog(int max, int base)
-{
-    int w = 1;
-    int curr = base;
-    while (curr <= max)
-    {
-        w++;
-        curr *= base;
-    }
-    return w;
-}
 
 AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer)
     : MetadataFieldEncoder(buffer)
 {
         
 }
+
 
 AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer, uint32_t w = 0, bool em = false, std::set<std::string> values = {})
     : MetadataFieldEncoder(buffer), enable_map(em)
@@ -29,13 +18,14 @@ AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuff
             map.push_back(*it);
         }
         mappings = w;
-        width = ceillog(mappings, 2);
+        width = EncodeUtil::ceil_log(mappings, 2);
     }
     else
     {
         width = w;
     }
 }
+
 
 void 
 AlphanumericFieldEncoder::decode_metadata(void)
@@ -51,7 +41,7 @@ AlphanumericFieldEncoder::decode_metadata(void)
     if (enable_map)
     {
         mappings = buffer->read(12);
-        width = ceillog(mappings, 2);
+        width = EncodeUtil::ceil_log(mappings, 2);
         for (uint32_t i = 0; i < mappings; i++)
         {
             std::string s("");
@@ -69,10 +59,11 @@ AlphanumericFieldEncoder::decode_metadata(void)
     }
 }
 
+
 void 
 AlphanumericFieldEncoder::encode_metadata(void)
 {
-    // Field type = 1
+    // Field type = 01
     buffer->write(1,2);
 
     // Enable map flag
@@ -93,6 +84,7 @@ AlphanumericFieldEncoder::encode_metadata(void)
         buffer->write(width, 12);
     }
 }
+
 
 void 
 AlphanumericFieldEncoder::encode(std::string s)
@@ -127,6 +119,7 @@ AlphanumericFieldEncoder::encode(std::string s)
     }
 }
 
+
 void
 AlphanumericFieldEncoder::decode(std::ostream& ss)
 {
@@ -135,7 +128,7 @@ AlphanumericFieldEncoder::decode(std::ostream& ss)
         uint32_t key = buffer->read(width);
         ss << map[key];
     } 
-    else
+    else // TODO: Test integrity of non-mapped values
     {
         int size = width;
         while (size > 0) 

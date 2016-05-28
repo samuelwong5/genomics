@@ -1,7 +1,9 @@
 #include "bitbuffer.hpp"
 
-const int BUFFER_SIZE = 32;
-const int DATA_INIT_SIZE = 64;
+
+#define BUFFER_SIZE 32
+#define DATA_INIT_SIZE 64
+
 
 BitBuffer::BitBuffer(void) 
 {
@@ -15,12 +17,15 @@ BitBuffer::BitBuffer(void)
     alloc_size = DATA_INIT_SIZE;     
 }
 
+
 BitBuffer::~BitBuffer(void)
 {
 
 }
 
-void BitBuffer::write(uint32_t value, uint8_t length)
+
+void 
+BitBuffer::write(uint32_t value, uint8_t length)
 {
     if (length + write_offset <= BUFFER_SIZE) { // Fits in buffer[0]
         uint32_t mask = 0xffffffff;
@@ -46,7 +51,9 @@ void BitBuffer::write(uint32_t value, uint8_t length)
     expand();
 }
 
-uint32_t BitBuffer::read(uint8_t length)
+
+uint32_t 
+BitBuffer::read(uint8_t length)
 {
     uint32_t value = 0xffffffff;
     if (length + read_offset <= BUFFER_SIZE) {
@@ -76,7 +83,9 @@ uint32_t BitBuffer::read(uint8_t length)
     return value;
 }
 
-void BitBuffer::print(void)
+
+void 
+BitBuffer::print(void)
 {
     std::vector<uint32_t>::iterator it = buffer.begin();
     printf("Size: %d bytes\n", size());
@@ -104,18 +113,24 @@ void BitBuffer::print(void)
     }
 }
 
-int BitBuffer::size(void)
+
+int 
+BitBuffer::size(void)
 {
     int remainder = write_offset / 8 + (write_offset % 8 > 0 ? 1 : 0);
     return write_index * BUFFER_SIZE / 8 + remainder;
 }
 
-int BitBuffer::read_is_end(void)
+
+int 
+BitBuffer::read_is_end(void)
 {
     return read_offset >=write_offset && write_it == read_it;
 }
 
-void BitBuffer::expand(void)
+
+void 
+BitBuffer::expand(void)
 {
     if (write_index + 1 >= alloc_size) {
         alloc_size = alloc_size * 2;
@@ -131,14 +146,12 @@ void BitBuffer::expand(void)
     }
 }
 
+
 void
 BitBuffer::read_seek(uint32_t bits)
 {
-    //std::cout << "Read_seek " << bits << "\n";
-    //std::cout << "Old read_offset " << read_offset << " and read_index " << read_index << "\n";
     read_offset += bits % 32;
     read_index += bits / 32;
-    //std::cout << "New read_offset " << read_offset << " and read_index " << read_index << "\n";
     if (read_offset >= 32)
     {
         read_offset -= 32;
@@ -148,12 +161,14 @@ BitBuffer::read_seek(uint32_t bits)
     std::advance(read_it, read_index);
 }
 
+
 void 
 BitBuffer::write_to_file(std::string filename)
 {
     std::ofstream fout(filename, std::ios::out | std::ios::binary);
     fout.write((char*)&buffer[0], (write_index + 1) * 4);    
 }
+
 
 void 
 BitBuffer::read_from_file(std::string filename)

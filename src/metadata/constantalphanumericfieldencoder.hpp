@@ -3,9 +3,11 @@
 
 #include "metadatafieldencoder.hpp"
 
+
 class ConstantAlphanumericFieldEncoder : public MetadataFieldEncoder {
     private:
         std::string value;
+        
     public:
         ConstantAlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>&);
         ConstantAlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>&, std::string);

@@ -4,10 +4,10 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <vector>
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
 /*
  * Utility functions to writing individual bits into a buffer to
@@ -26,6 +26,7 @@ class BitBuffer {
     uint32_t read_index;                        // Size of read memory
     uint32_t alloc_size;                        // Size of allocated memory
     void expand(void);                          // Resize vector buffer if fully used
+    
   public:
     BitBuffer();
     ~BitBuffer();

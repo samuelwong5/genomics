@@ -1,10 +1,12 @@
 #include "constantalphanumericfieldencoder.hpp"
 
+
 ConstantAlphanumericFieldEncoder::ConstantAlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer)
     : MetadataFieldEncoder(buffer)
 {
         
 }
+
 
 ConstantAlphanumericFieldEncoder::ConstantAlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer, std::string v = std::string()) 
     : MetadataFieldEncoder(buffer), value(v)
@@ -12,22 +14,20 @@ ConstantAlphanumericFieldEncoder::ConstantAlphanumericFieldEncoder(const std::sh
 
 }
 
+
 void 
 ConstantAlphanumericFieldEncoder::decode_metadata(void)
 {
-    // Field type = 1
     int width = buffer->read(14);
-
-    //std::cout << "Constant Alphanumeric: " << width << "\n";
-    // Enable map flag
     while (width --> 0)
         value.append(1, buffer->read(8));
 }
 
+
 void 
 ConstantAlphanumericFieldEncoder::encode_metadata(void)
 {
-    // Field type = 0
+    // Field type = 00
     buffer->write(0, 4);
     
     // Value
@@ -36,11 +36,13 @@ ConstantAlphanumericFieldEncoder::encode_metadata(void)
         buffer->write(*it, 8);
 }
 
+
 void 
 ConstantAlphanumericFieldEncoder::encode(std::string s)
 {
-    // Nothing to encode
+
 }
+
 
 void
 ConstantAlphanumericFieldEncoder::decode(std::ostream& ss)
