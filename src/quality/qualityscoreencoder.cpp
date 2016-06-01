@@ -10,6 +10,7 @@ QualityScoreEncoder::update(int c)
 {
     for (int i = c + 1; i < SYMBOL_SIZE; i++)
         frequency[i]++;
+    //std::cout << "Total: " << frequency[SYMBOL_SIZE - 1] << "\n";
     if (frequency[SYMBOL_SIZE - 1] >= MAX_FREQ)
         freeze = true;
 }
@@ -29,12 +30,13 @@ QualityScoreEncoder::decode_entry(std::ofstream& output, int entry_len)
     static uint64_t high = MAX_VALUE;
     static uint64_t low = 0;
     static uint64_t value = b->read(VALUE_BITS);
+    static char prev = -1;
     for (int i = 0; i < entry_len; i++) {
       uint64_t range = high - low + 1;
       uint32_t pcount = frequency[SYMBOL_SIZE - 1];
       uint64_t scaled_value =  ((value - low + 1) * pcount - 1 ) / range;
       //std::cout << scaled_value << "\n";
-      int c = SYMBOL_SIZE;
+      int c = SYMBOL_SIZE - 2;
       for (int i = 0; i < SYMBOL_SIZE - 1; i++)
       {
           //std::cout << (char) (i + 33) << ":" << frequency[i+1] << std::endl;
@@ -47,8 +49,20 @@ QualityScoreEncoder::decode_entry(std::ofstream& output, int entry_len)
       }
       uint32_t phigh = frequency[c + 1];
       uint32_t plow = frequency[c];
-      char cr = c + BASE_CHAR_OFFSET;
-      output << cr;
+      //std::cout << frequency[c - 1] << " < " << plow << " < " << scaled_value << " (" << c << ") < " << phigh << std::endl;
+      //std::cout << c << " ";
+      if (c >= BASE_ALPHABET_SIZE)
+      {
+          i += c - BASE_ALPHABET_SIZE;
+          for (int j = 0; j < c - BASE_ALPHABET_SIZE + 1; j++)
+              output << prev;
+      }
+      else
+      {
+
+          prev = c + BASE_CHAR_OFFSET;
+          output << prev;
+      }
       //std::cout << cr;
       high = low + (range*phigh)/pcount -1;
       low = low + (range*plow)/pcount;
@@ -84,46 +98,78 @@ QualityScoreEncoder::decode_entry(std::ofstream& output, int entry_len)
 }
 
 void 
+QualityScoreEncoder::encode_symbol(uint32_t c)
+{
+    //std::cout << c << " ";
+    uint32_t phigh = frequency[c+1];
+    uint32_t plow = frequency[c];
+    uint64_t range = high - low + 1;
+    uint64_t pcount = frequency[SYMBOL_SIZE - 1];
+    high = low + (range * phigh / pcount) - 1;
+    low = low + (range * plow / pcount);
+    for (;;) 
+    {
+        if (high < ONE_HALF) 
+        {
+            b->write((1 << pending_bits) - 1, pending_bits + 1);
+            pending_bits = 0;
+        }
+        else if (low >= ONE_HALF)
+        {
+            b->write(1 << pending_bits, pending_bits + 1);
+            pending_bits = 0;
+        }
+        else if (low >= ONE_FOURTH && high < THREE_FOURTHS)
+        {
+            pending_bits++;
+            low -= ONE_FOURTH;
+            high -= ONE_FOURTH;
+        } else { break; }
+        high <<= 1;
+        high++;
+        low <<= 1;
+        high &= MAX_VALUE;
+        low &= MAX_VALUE;
+    }
+    if (!freeze)
+        update(c);
+}
+
+void 
 QualityScoreEncoder::encode_entry(std::string qs)
 {
     //std::cout << "Encoding string: " << qs << std::endl;
     static const int BASE_CHAR_OFFSET = 33;
+    uint32_t prev = -1;
+    int consec = 0;
     for (auto it = qs.begin(); it != qs.end(); it++)
     {
         uint32_t c = *it - BASE_CHAR_OFFSET;
-        uint32_t phigh = frequency[c+1];
-        uint32_t plow = frequency[c];
-        uint64_t range = high - low + 1;
-        uint64_t pcount = frequency[SYMBOL_SIZE - 1];
-        high = low + (range * phigh / pcount) - 1;
-        low = low + (range * plow / pcount);
-        for (;;) 
+        if (prev == c)
         {
-            if (high < ONE_HALF) 
+            consec++;
+            if (consec >= MAX_CONSEC_ZERO)
             {
-                b->write((1 << pending_bits) - 1, pending_bits + 1);
-                pending_bits = 0;
+                encode_symbol(BASE_ALPHABET_SIZE + MAX_CONSEC_ZERO - 1);
+                consec = 0;
             }
-            else if (low >= ONE_HALF)
-            {
-                b->write(1 << pending_bits, pending_bits + 1);
-                pending_bits = 0;
-            }
-            else if (low >= ONE_FOURTH && high < THREE_FOURTHS)
-            {
-                pending_bits++;
-                low -= ONE_FOURTH;
-                high -= ONE_FOURTH;
-            } else { break; }
-            high <<= 1;
-            high++;
-            low <<= 1;
-            high &= MAX_VALUE;
-            low &= MAX_VALUE;
         }
-        if (!freeze)
-            update(c);
+        else
+        {
+            if (consec > 0)
+            {
+                //std::cout << "Encode consec: " << consec << std::endl;
+                encode_symbol(BASE_ALPHABET_SIZE + consec - 1);
+                consec = 0;
+            }
+            //std::cout << "Encode symbol: " << c << std::endl;
+            encode_symbol(c);
+            prev = c;
+        }
     }
+    
+    if (consec > 0)
+        encode_symbol(BASE_ALPHABET_SIZE + consec - 1);
     //std::cout << std::endl;
 }
 
