@@ -184,7 +184,7 @@ BitBuffer::write_pad(void)
     {
         write_offset = 0;
         write_index++;
-        write++;
+        write_it++;
     }
 }
 

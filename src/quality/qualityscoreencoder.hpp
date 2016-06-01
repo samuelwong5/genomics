@@ -5,7 +5,7 @@
 #include <string>
 
 #include "../bitbuffer/bitbuffer.hpp"
-#include "../reads.hpp"
+#include "../sequence/reads.hpp"
 
 class QualityScoreEncoder {
   private:

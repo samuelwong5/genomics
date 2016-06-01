@@ -1,0 +1,5 @@
+    ALGORITHM  SIZE       C RATE    ENC   DEC
+  - HUFFMAN    33490659   33.49%   ( 7s) ( 5s)
+  - LZW        42135630   42.14%   (37s) (27s)
+  - NAIVE RL   95043272   95.04%   ( 4s) ( 5s)
+

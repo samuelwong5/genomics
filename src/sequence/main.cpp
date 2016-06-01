@@ -24,8 +24,8 @@ int main(int argc, char *argv[]) {
     printf("usage: %s <fmt file> <fastq file>\n", argv[0]);
     exit(1);
   }
-
-  printf("loading index data ... "); fflush(stdout);
+  /*
+  //printf("loading index data ... "); fflush(stdout);
   gettimeofday(&tv1, NULL);
 
   // load index
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
   gettimeofday(&tv2, NULL);
   printf("OK [%.2f s]\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
 	 (double) (tv2.tv_sec - tv1.tv_sec));
-
+*/
   // allocate input buffer
   char *in_buff = new char [BUFF_SIZE+512];
   if (!in_buff) {
@@ -90,39 +90,39 @@ int main(int argc, char *argv[]) {
     if (!(i%2)) {
       thr = std::thread(loadReads, fp, std::ref(r1), in_buff, size, r_ctrl, &bytes_r);
       if (r0.size() > 0) {
-	cnt += r0.size();
-	compress(r0, idx, ival1, ival2, sai, argv[2]);
-	// compress meta
-	// compress quality scores
+	    cnt += r0.size();
+	    //compress(r0, idx, ival1, ival2, sai, argv[2]);
+	    // compress meta
+	    // compress quality scores
       }
       else
-	break;
+	    break;
     }
     
     // read to r0, process r1
     else {
       thr = std::thread(loadReads, fp, std::ref(r0), in_buff, size, r_ctrl, &bytes_r);
       if (r1.size() > 0) {
-	cnt += r1.size();
-	compress(r1, idx, ival1, ival2, sai, argv[2]);
-	// compress meta
-	// compress quality scores	
+	    cnt += r1.size();
+	    //compress(r1, idx, ival1, ival2, sai, argv[2]);
+	    // compress meta
+	    // compress quality scores	
       }
       else 
-	break;
+	    break;
     }
     thr.join();
     printf("processed %u reads\n", cnt);
   }
   thr.join();
  
-  if (munmap(sai, sa_map_size) == -1) {
-    printf("error: unable to unmap file!\n");
-    exit(1);
-  }
+  //if (munmap(sai, sa_map_size) == -1) {
+  //  printf("error: unable to unmap file!\n");
+  //  exit(1);
+  //}
 
-  delete[] idx;
-  delete[] in_buff;
+  //delete[] idx;
+  //delete[] in_buff;
  
   return 0;
 }

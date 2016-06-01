@@ -245,7 +245,7 @@ encode(std::string ifilename, std::string ofilename, int entries = 10000)
     //b->print();
 }
 
-
+/*
 int 
 main(int argc, char** argv)
 {
@@ -261,4 +261,4 @@ main(int argc, char** argv)
         encode(argv[2], argv[3], entries);
     else if (strncmp(argv[1], "--decode", 8) == 0)
         decode(argv[2], argv[3]);
-}
+}*/

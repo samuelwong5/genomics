@@ -130,3 +130,10 @@ void BitBuffer::expand(void)
         std::advance(read_it, read_index);
    }
 }
+
+void 
+BitBuffer::write_to_file(std::string filename)
+{
+    std::ofstream fout(filename, ios::out | ios::binary);
+    fout.write((char*)&buffer[0], buffer.size() * 4);    
+}

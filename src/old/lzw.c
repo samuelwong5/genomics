@@ -94,8 +94,6 @@ char * lzw_encode_run(lzw_dict *dict, char *seq, data *buffer)
         fprintf(stderr, "[FATAL] Character %c not in initial alphabet. Program will now terminate.", seq[0]);
         exit(-1);
     }
-    // Write to buffer
-
     // Add new entry to dict 
     char *new_seq = malloc(len + 1);
     strncpy(new_seq, seq, len);
@@ -118,27 +116,43 @@ data * lzw_encode(char *alphabet, char *code)
 
 char * lzw_decode(char *alphabet, data *d)
 {
-    lzw_dict *dict = lzw_dict_init(alphabet);
+    char **decode_dict = malloc(64);
+    int index = 1;
+    int len = 6;
+    int index_max = 64;
+    for (int i = 0; i < strlen(alphabet); i++) {
+        char *c = malloc(2);
+        c[0] = alphabet[i];
+        c[1] = '\0';
+        decode_dict[index++] = c;
+    }
     int pt_len = 100;
     int total_len = 0;
     char *plaintext = malloc(pt_len);
     char *curr = plaintext;
+    if (plaintext == NULL)
+        printf("PT NULL!!");
+    else if (curr == NULL)
+        printf("CURR NULL!");
     // Get the sequence corresponding to the code
-    int code = (int) bits_read(d, dict->bits);
+    int code = (int) bits_read(d, len);
+    printf("Got code: %d %d ...", index, code);
     char *last_seq = NULL;
     while (code != 0) {
-        char *seq = lzw_dict_get(dict, code);
-        if (seq == NULL) {  // Edge case when cScSc where c is a character and S is a string
+        char *seq = decode_dict[code];
+        printf("%s", seq);
+        if (code >= index) {  // Edge case when cScSc where c is a character and S is a string
             int seq_len = strlen(last_seq) + 1;
             seq = malloc(seq_len + 1);
             strncpy(seq, last_seq, seq_len - 1);
             seq[seq_len - 1] = last_seq[0];
             seq[seq_len] = '\0';
-            lzw_dict_add(dict, seq, 1);
+            decode_dict[index++] = seq;
             total_len += seq_len;
             strncpy(curr, seq, seq_len);
             curr += seq_len;
         } else {
+            printf("Got %d %s\n", code, seq);
             int seq_len = strlen(seq);
             // Increase size of result if needed
             if (pt_len < total_len + seq_len) {
@@ -146,10 +160,16 @@ char * lzw_decode(char *alphabet, data *d)
                 plaintext = realloc(plaintext, pt_len);
                 curr = plaintext + total_len;
             }
+            else {
+                printf("Not needed...");
+            }
             // Copy sequence into result
             total_len += seq_len;
+            printf("Copying %s %d into curr %s... ", seq, seq_len, curr);
             strncpy(curr, seq, seq_len);
+           
             curr += seq_len;
+            printf("So far: %s\n", plaintext);
             // Add new entry to dict which is concat of last_seq and first char of current seq
             if (last_seq != NULL) {
                 int new_seq_len = strlen(last_seq) + 2;
@@ -158,15 +178,22 @@ char * lzw_decode(char *alphabet, data *d)
                 strncpy(new_seq, last_seq, new_seq_len - 2);
                 new_seq[new_seq_len - 2] = seq[0];
                 new_seq[new_seq_len - 1] = '\0';
-                lzw_dict_add(dict, new_seq, 1);
+                decode_dict[index++] = new_seq;
+                if (index >= index_max) {
+                    index_max *= 2;
+                    decode_dict = realloc(decode_dict, index_max);
+                    len++;
+                }
             }
         }
         last_seq = seq;
-        code = (int)bits_read(d, dict->bits);
+        code = (int)bits_read(d, len);
     }
     plaintext[total_len] = '\0';
 
-    lzw_dict_free(dict);
+    for (int i = 0; i < index; i++)
+        free(decode_dict[i]);
+    free(decode_dict);
     return plaintext;
 }
 
