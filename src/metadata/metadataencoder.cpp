@@ -58,6 +58,7 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, int entries)
     {
         std::vector<std::string> v;
         metadata = std::string(it->meta_data);
+        metadata.erase(0,1);
         split(metadata, v);
         for (int i = 0; i < num_fields; i++)
             values[i].insert(v[i]);     
@@ -168,8 +169,6 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
     b->init();
     std::cout << "[ STARTING COMPRESSION ]\n";
     // Encode sequence identifiers metadata
-    std::vector<MetadataFieldEncoder*> fields;
-    std::vector<char> sep;
     
     int entries = reads.size();
     static bool analyzed = false;
@@ -178,10 +177,10 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
         metadata_analyze(reads, entries);
         analyzed = true;
     }
-    
-    b->write(8, fields.size());
-    b->write(24, entries);
-    
+
+    b->write(fields.size(), 8);
+    b->write(entries, 24);
+
     for (auto it = fields.begin(); it != fields.end(); it++)
         (*it)->encode_metadata();
 
@@ -195,6 +194,7 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
         if (entries >= 100 && rem % (entries / 100) == 0)
             printf("\r  - Compressing [%3d%]", rem * 100 / entries);
         metadata = std::string(reads[rem].meta_data);
+        //std::cout << "\n" << metadata;
         metadata.erase(0,1);
         std::vector<std::string> v;
         split(metadata, v);       
@@ -299,12 +299,7 @@ MetaDataEncoder::decode(std::string ifilename, std::string ofilename = std::stri
     std::cout << "[ FINISHED DECOMPRESSION ]\n";
 }
 
-int main()
-{
 
-}
-
-/*
 void 
 encode(std::string ifilename, std::string ofilename, int entries = 1)
 {

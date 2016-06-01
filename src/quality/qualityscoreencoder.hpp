@@ -27,11 +27,12 @@ class QualityScoreEncoder {
     bool freeze = false;                               // Stop updating frequency table
     
   public:
-    QualityScoreEncoder(std::shared_ptr<BitBuffer>);
+    QualityScoreEncoder();
     void reset(void);
     void encode_symbol(uint32_t);
     void encode_entry(std::string);
     void decode_entry(std::ofstream&, int);
     void update(int);
     void encode_flush(void);
+    void qualityscore_compress(std::vector<read_t>&, char*);
 };

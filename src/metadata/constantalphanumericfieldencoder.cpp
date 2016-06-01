@@ -4,7 +4,7 @@
 ConstantAlphanumericFieldEncoder::ConstantAlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer)
     : MetadataFieldEncoder(buffer)
 {
-        
+      
 }
 
 

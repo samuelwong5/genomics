@@ -1,11 +1,14 @@
 /* main.cpp ----- James Arram 2016 */
 
-#include "def.hpp"
-#include "file.hpp"
-#include "inc.hpp"
-#include "reads.hpp"
-#include "index.hpp"
-#include "cmp_sw.hpp"
+#include "sequence/def.hpp"
+#include "sequence/file.hpp"
+#include "sequence/inc.hpp"
+#include "sequence/reads.hpp"
+#include "sequence/index.hpp"
+#include "sequence/cmp_sw.hpp"
+#include <iostream>
+#include "metadata/metadataencoder.hpp"
+#include "quality/qualityscoreencoder.hpp"
 
 int main(int argc, char *argv[]) {
   
@@ -79,8 +82,12 @@ int main(int argc, char *argv[]) {
   uint64_t bytes_r = 0;
   uint64_t size =  bytes_r + BUFF_SIZE <= len ? BUFF_SIZE : len - bytes_r;
   loadReads(fp, r0, in_buff, size, true, &bytes_r);
-  
-  // process batches
+  MetaDataEncoder mde;
+  mde.metadata_compress(r0, argv[2]);
+  QualityScoreEncoder qse;
+  qse.qualityscore_compress(r0, argv[2]);
+  std::cout << r0.size() << "\n";
+  /*// process batches
   uint32_t cnt = 0;
   for (int i = 0; ; i++) {
     bool r_ctrl = bytes_r < len ? true : false;
@@ -115,7 +122,7 @@ int main(int argc, char *argv[]) {
     printf("processed %u reads\n", cnt);
   }
   thr.join();
- 
+  */
   //if (munmap(sai, sa_map_size) == -1) {
   //  printf("error: unable to unmap file!\n");
   //  exit(1);

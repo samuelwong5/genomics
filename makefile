@@ -28,7 +28,10 @@ bin/sequence/%.o: src/sequence/%.cpp src/sequence/%.hpp
 	mkdir -p bin/sequence
 	${CC} ${CFLAGS} -c -o $@ $<
 
-compress: $(BB_OBJ_FILES) $(MD_OBJ_FILES) $(QS_OBJ_FILES) $(SQ_OBJ_FILES)
+bin/main.o: src/main.cpp
+	${CC} ${CFLAGS} -c -o $@ $<
+
+compress: $(BB_OBJ_FILES) $(MD_OBJ_FILES) $(QS_OBJ_FILES) $(SQ_OBJ_FILES) bin/main.o
 	$(CC) $(CFLAGS) -g $^ -o $@
 
 clean:
