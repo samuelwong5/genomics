@@ -1,33 +1,19 @@
-#include <cstring>
-#include <cstdlib>
-#include <cmath>
-#include <iostream>
-#include <fstream>
-#include <set>
-#include <vector>
-
-#include "metadatafieldencoder.hpp"
-#include "alphanumericfieldencoder.hpp"
-#include "autoincrementingfieldencoder.hpp"
-#include "constantalphanumericfieldencoder.hpp"
-#include "numericfieldencoder.hpp"
-#include "bitbuffer.hpp"
-#include "encodeutil.hpp"
+#include "metadataencoder.hpp"
 
 
 void
-metadata_separators(std::string metadata, std::vector<char>& separators)
+MetaDataEncoder::metadata_separators(std::string metadata)
 {
     for (std::string::iterator it = metadata.begin(); it != metadata.end(); ++it)
     {
         if (*it == ' ' || *it == '.' || *it == '-' || *it == ':' || *it == '#')
-            separators.push_back(*it);
+            sep.push_back(*it);
     }
 }
 
 
 void 
-split(std::string& str, std::vector<std::string>& parts) {
+MetaDataEncoder::split(std::string& str, std::vector<std::string>& parts) {
   size_t start, end = 0;
   static std::string delim = (" #.-:");
   while (end < str.size()) {
@@ -47,13 +33,11 @@ split(std::string& str, std::vector<std::string>& parts) {
 
 
 void
-metadata_analyze(std::ifstream &file, std::vector<char>& sep, std::vector<MetadataFieldEncoder*>& fields, int entries, const std::shared_ptr<BitBuffer> b)
+MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, int entries)
 {   
-    std::string metadata;
-    int remaining = entries - 1;
-    std::getline(file, metadata);
+    std::string metadata(reads[0].meta_data);
     metadata.erase(0,1);
-    metadata_separators(metadata, sep);    // List of Separators in order  
+    metadata_separators(metadata);    // List of Separators in order  
     int num_fields = sep.size() + 1;
     std::cout << "  - Analyzing Fields: [" << num_fields << "]\n";
     
@@ -68,25 +52,19 @@ metadata_analyze(std::ifstream &file, std::vector<char>& sep, std::vector<Metada
         for (int i = 0; i < num_fields; i++)
             values[i].insert(v[i]);
     }
-    b->write(num_fields, 8);
+    // b->write(num_fields, 8);
 
-    std::getline(file, metadata);
-    std::getline(file, metadata);
-    std::getline(file, metadata); 
-    while (remaining --> 0 && std::getline(file, metadata))
+    for (auto it = ++reads.begin(); it != reads.end(); it++)
     {
-        metadata.erase(0,1);
         std::vector<std::string> v;
+        metadata = std::string(it->meta_data);
         split(metadata, v);
         for (int i = 0; i < num_fields; i++)
-            values[i].insert(v[i]);
-        std::getline(file, metadata);
-        std::getline(file, metadata);
-        std::getline(file, metadata);      
+            values[i].insert(v[i]);     
     }
     
-    b->write(entries - remaining - 1, 24);
-    std::cout << "  - Entries: " << entries - remaining - 1 << "\n";
+   // b->write(entries, 24);
+    std::cout << "  - Entries: " << entries << "\n";
     
     for (auto it = values.begin(); it != values.end(); it++)
     {
@@ -147,7 +125,7 @@ metadata_analyze(std::ifstream &file, std::vector<char>& sep, std::vector<Metada
 
 
 void
-encode_separators(std::vector<char>& sep, const std::shared_ptr<BitBuffer>& b)
+MetaDataEncoder::encode_separators(void)
 {
     static const int bits = 3;
     for (auto it = sep.begin(); it != sep.end(); it++)
@@ -175,16 +153,71 @@ encode_separators(std::vector<char>& sep, const std::shared_ptr<BitBuffer>& b)
 
 
 void 
-decode_separators(std::vector<char>& sep, const std::shared_ptr<BitBuffer>& b, int num)
+MetaDataEncoder::decode_separators(void)
 {
     const char* smap = " .:-#";
-    while (num --> 0)
+    // Number of separators = num_fields - 1
+    for (int i = 1; i < num_fields; i++) 
         sep.push_back(smap[b->read(3)]);
 }
 
 
+void 
+MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
+{
+    b->init();
+    std::cout << "[ STARTING COMPRESSION ]\n";
+    // Encode sequence identifiers metadata
+    std::vector<MetadataFieldEncoder*> fields;
+    std::vector<char> sep;
+    
+    int entries = reads.size();
+    static bool analyzed = false;
+    if (!analyzed)
+    {
+        metadata_analyze(reads, entries);
+        analyzed = true;
+    }
+    
+    b->write(8, fields.size());
+    b->write(24, entries);
+    
+    for (auto it = fields.begin(); it != fields.end(); it++)
+        (*it)->encode_metadata();
+
+    encode_separators();      
+    int num_fields = fields.size();
+    
+    // Compress metadata entries
+    std::string metadata;
+    for (int rem = 0; rem < entries; rem++)
+    {
+        if (entries >= 100 && rem % (entries / 100) == 0)
+            printf("\r  - Compressing [%3d%]", rem * 100 / entries);
+        metadata = std::string(reads[rem].meta_data);
+        metadata.erase(0,1);
+        std::vector<std::string> v;
+        split(metadata, v);       
+        for (int i = 0; i < num_fields; i++)
+            fields[i]->encode(v[i]);  
+    }
+    std::string ofilename(filename);
+    ofilename.append(".md");
+    b->write_to_file(ofilename);
+    std::cout << "\r  - Compressing [100%]\n  - Compressed size: " << b->size() << " bytes\n";
+    
+    // Cleanup
+    for (auto it = fields.begin(); it != fields.end(); it++)
+    {
+        delete *it;
+    }
+
+    std::cout << "[ FINISHED COMPRESSION ]\n";
+}
+
+/*
 void
-decode(std::string ifilename, std::string ofilename = std::string(), int index = 1, int len = -1)
+MetaDataEncoder::decode(std::string ifilename, std::string ofilename = std::string(), int index = 1, int len = -1)
 { 
     std::cout << "[ STARTING DECOMPRESSION ]\n";
     std::shared_ptr<BitBuffer> b(new BitBuffer);
@@ -266,18 +299,22 @@ decode(std::string ifilename, std::string ofilename = std::string(), int index =
     std::cout << "[ FINISHED DECOMPRESSION ]\n";
 }
 
+int main()
+{
 
+}
+
+/*
 void 
 encode(std::string ifilename, std::string ofilename, int entries = 1)
 {
     std::cout << "[ STARTING COMPRESSION ]\n";
     // Encode sequence identifiers metadata
     std::shared_ptr<BitBuffer> b(new BitBuffer);
-    std::ifstream file(ifilename, std::ifstream::in);
     std::vector<MetadataFieldEncoder*> fields;
     std::vector<char> sep;
-    
-    metadata_analyze(file, sep, fields, entries, b);
+    std::ifstream file(ifilename);
+    //metadata_analyze(file, sep, fields, entries, b);
     
     for (auto it = fields.begin(); it != fields.end(); it++)
         (*it)->encode_metadata();
@@ -315,7 +352,6 @@ encode(std::string ifilename, std::string ofilename, int entries = 1)
     std::cout << "[ FINISHED COMPRESSION ]\n";
 }
 
-
 int main(int argc, char** argv)
 {
     if (argc < 3)
@@ -339,4 +375,4 @@ int main(int argc, char** argv)
         else
             decode(ifn, ofn);
     } 
-}
+}*/

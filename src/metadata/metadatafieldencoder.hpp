@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "bitbuffer.hpp"
+#include "../bitbuffer/bitbuffer.hpp"
 
 
 class MetadataFieldEncoder {

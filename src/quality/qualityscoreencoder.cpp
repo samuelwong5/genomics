@@ -200,6 +200,27 @@ decode(std::string ifilename, std::string ofilename)
 }    
 
 void
+qualityscore_compress(std::vector<read_t>& reads, char* filename)
+{
+    static std::shared_ptr<BitBuffer> b(new BitBuffer);
+    static QualityScoreEncoder qse(b);
+    b->init();
+    int entries = reads.size();
+    b->write(entries, 32);
+    int entry_len = reads[0].seq_len;
+    b->write(entry_len, 32);
+    for (auto it = reads.begin(); it != reads.end(); it++)
+    {
+        qse.encode_entry(std::string(it->q_score));
+    }
+    qse.encode_flush();
+    std::string ofilename(filename);
+    ofilename.append(".qs");
+    b->write_to_file(ofilename);
+}
+
+
+void
 encode(std::string ifilename, std::string ofilename, int entries = 10000)
 {
     std::cout << "Encoding file " << ifilename << "\n           to " << ofilename << "\n    - Entries: " << entries << "\n";

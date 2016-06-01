@@ -4,7 +4,8 @@
 #include <memory>
 #include <string>
 
-#include "bitbuffer.hpp"
+#include "../bitbuffer/bitbuffer.hpp"
+#include "../reads.hpp"
 
 class QualityScoreEncoder {
   private:
