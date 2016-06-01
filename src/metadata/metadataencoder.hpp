@@ -32,7 +32,7 @@ public:
     void metadata_analyze(std::vector<read_t>&, int);
     void encode_separators(void);
     void decode_separators(void);
-    MetaDataEncoder() : b(std::shared_ptr<BitBuffer>(new BitBuffer)) { std::cout << "MDEBB.get()" << b.get() << std::endl; }
+    MetaDataEncoder() : b(std::shared_ptr<BitBuffer>(new BitBuffer)) {  }
     void metadata_compress(std::vector<read_t>&, char *);
 };
 

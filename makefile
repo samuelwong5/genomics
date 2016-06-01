@@ -35,6 +35,6 @@ compress: $(BB_OBJ_FILES) $(MD_OBJ_FILES) $(QS_OBJ_FILES) $(SQ_OBJ_FILES) bin/ma
 	$(CC) $(CFLAGS) -g $^ -o $@
 
 clean:
-	rm -rf bf *.o
+	rm -rf bin/*
 
 .PHONY: clean

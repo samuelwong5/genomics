@@ -191,21 +191,24 @@ QualityScoreEncoder::encode_flush(void)
 void
 QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* filename)
 {
-    std::cout << "COMPRESSING QUALITY SCORES\n";
+    std::cout << " [QUALITY SCORES]\n";
     b->init();
     int entries = reads.size();
     b->write(entries, 32);
     int entry_len = reads[0].seq_len;
     b->write(entry_len, 32);
+    int curr_entries = 0;
     for (auto it = reads.begin(); it != reads.end(); it++)
     {
+        if (entries >= 100 && curr_entries % (entries / 100) == 0)
+            printf("\r  - Compressing [%3d%%]", curr_entries * 100 / entries);
         encode_entry(std::string(it->q_score));
-    }
+    }    
     encode_flush();
     std::string ofilename(filename);
     ofilename.append(".qs");
     b->write_to_file(ofilename);
-    std::cout << "  - Compressed size: " << b->size() << " bytes\nQUALITY SCORES DONE.\n";
+    std::cout << "\r  - Compressing [100%]\n  - Compressed size: " << b->size() << " bytes\n";
 }
 
 /*

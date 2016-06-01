@@ -65,7 +65,6 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, int entries)
     }
     
    // b->write(entries, 24);
-    std::cout << "  - Entries: " << entries << "\n";
     
     for (auto it = values.begin(); it != values.end(); it++)
     {
@@ -167,7 +166,7 @@ void
 MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
 {
     b->init();
-    std::cout << "[ STARTING COMPRESSION ]\n";
+    std::cout << " [SEQUENCE ID/METADATA]\n";
     // Encode sequence identifiers metadata
     
     int entries = reads.size();
@@ -211,15 +210,13 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
     {
         delete *it;
     }
-
-    std::cout << "[ FINISHED COMPRESSION ]\n";
 }
 
 /*
 void
 MetaDataEncoder::decode(std::string ifilename, std::string ofilename = std::string(), int index = 1, int len = -1)
 { 
-    std::cout << "[ STARTING DECOMPRESSION ]\n";
+    std::cout << " [SEQUENCE ID/METADATA]\n";
     std::shared_ptr<BitBuffer> b(new BitBuffer);
     b->read_from_file(ifilename);
     int num_fields = b->read(8);
@@ -296,14 +293,13 @@ MetaDataEncoder::decode(std::string ifilename, std::string ofilename = std::stri
             os << sep[i];
         }
     }
-    std::cout << "[ FINISHED DECOMPRESSION ]\n";
 }
 
 
 void 
 encode(std::string ifilename, std::string ofilename, int entries = 1)
 {
-    std::cout << "[ STARTING COMPRESSION ]\n";
+    std::cout << " [\n";
     // Encode sequence identifiers metadata
     std::shared_ptr<BitBuffer> b(new BitBuffer);
     std::vector<MetadataFieldEncoder*> fields;
@@ -325,7 +321,7 @@ encode(std::string ifilename, std::string ofilename, int entries = 1)
     for (int rem = 0; rem < entries && std::getline(file, metadata); rem++)
     {
         if (entries >= 100 && rem % (entries / 100) == 0)
-            printf("\r  - Compressing [%3d%]", rem * 100 / entries);
+            printf("\r  - Compressing [%3d%%]", rem * 100 / entries);
         metadata.erase(0,1);
         std::vector<std::string> v;
         split(metadata, v);       
@@ -344,7 +340,6 @@ encode(std::string ifilename, std::string ofilename, int entries = 1)
         delete *it;
     }
     file.close();
-    std::cout << "[ FINISHED COMPRESSION ]\n";
 }
 
 int main(int argc, char** argv)

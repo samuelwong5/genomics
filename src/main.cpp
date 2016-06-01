@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
   r0.reserve(CEIL(BUFF_SIZE, SEQ_LEN*2));
   r1.reserve(CEIL(BUFF_SIZE, SEQ_LEN*2));
 
-  printf("compressing reads ... \n"); fflush(stdout);
+  printf("Compressing\n"); fflush(stdout);
 
   // read first batch
   openFile(&fp, argv[2], "r");
@@ -82,11 +82,12 @@ int main(int argc, char *argv[]) {
   uint64_t bytes_r = 0;
   uint64_t size =  bytes_r + BUFF_SIZE <= len ? BUFF_SIZE : len - bytes_r;
   loadReads(fp, r0, in_buff, size, true, &bytes_r);
+  std::cout << "Compressing batch \n Entries: " << r0.size() << "\n";
   MetaDataEncoder mde;
   mde.metadata_compress(r0, argv[2]);
   QualityScoreEncoder qse;
   qse.qualityscore_compress(r0, argv[2]);
-  std::cout << r0.size() << "\n";
+  std::cout << "Compression finished.\n";
   /*// process batches
   uint32_t cnt = 0;
   for (int i = 0; ; i++) {
