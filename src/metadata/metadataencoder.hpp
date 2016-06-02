@@ -9,7 +9,7 @@
 #include <set>
 #include <vector>
 
-#include "../reads.hpp"
+#include "../sequence/reads.hpp"
 
 #include "metadatafieldencoder.hpp"
 #include "alphanumericfieldencoder.hpp"
@@ -21,7 +21,7 @@
 
 class MetaDataEncoder {
 private:
-    std::shared_ptr<BitBuffer> b;
+    const std::shared_ptr<BitBuffer> b;
     uint8_t num_fields;
     std::vector<char> sep;
     std::vector<MetadataFieldEncoder*> fields;
@@ -32,7 +32,15 @@ public:
     void metadata_analyze(std::vector<read_t>&, int);
     void encode_separators(void);
     void decode_separators(void);
-    MetaDataEncoder() { b = std::shared_ptr<BitBuffer>(new BitBuffer); }
+    MetaDataEncoder() : b(std::shared_ptr<BitBuffer>(new BitBuffer)) {  }
+    ~MetaDataEncoder() 
+    {   // Cleanup
+        for (auto it = fields.begin(); it != fields.end(); it++)
+        {
+            delete *it;
+        }
+    }
+    
     void metadata_compress(std::vector<read_t>&, char *);
 };
 

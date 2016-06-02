@@ -1,11 +1,14 @@
 /* main.cpp ----- James Arram 2016 */
 
-#include "def.hpp"
-#include "file.hpp"
-#include "inc.hpp"
-#include "reads.hpp"
-#include "index.hpp"
-#include "cmp_sw.hpp"
+#include "sequence/def.hpp"
+#include "sequence/file.hpp"
+#include "sequence/inc.hpp"
+#include "sequence/reads.hpp"
+#include "sequence/index.hpp"
+#include "sequence/cmp_sw.hpp"
+#include <iostream>
+#include "metadata/metadataencoder.hpp"
+#include "quality/qualityscoreencoder.hpp"
 
 int main(int argc, char *argv[]) {
   
@@ -24,8 +27,8 @@ int main(int argc, char *argv[]) {
     printf("usage: %s <fmt file> <fastq file>\n", argv[0]);
     exit(1);
   }
-
-  printf("loading index data ... "); fflush(stdout);
+  /*
+  //printf("loading index data ... "); fflush(stdout);
   gettimeofday(&tv1, NULL);
 
   // load index
@@ -59,7 +62,7 @@ int main(int argc, char *argv[]) {
   gettimeofday(&tv2, NULL);
   printf("OK [%.2f s]\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
 	 (double) (tv2.tv_sec - tv1.tv_sec));
-
+*/
   // allocate input buffer
   char *in_buff = new char [BUFF_SIZE+512];
   if (!in_buff) {
@@ -71,16 +74,33 @@ int main(int argc, char *argv[]) {
   r0.reserve(CEIL(BUFF_SIZE, SEQ_LEN*2));
   r1.reserve(CEIL(BUFF_SIZE, SEQ_LEN*2));
 
-  printf("compressing reads ... \n"); fflush(stdout);
+  printf("Compressing\n"); fflush(stdout);
 
   // read first batch
   openFile(&fp, argv[2], "r");
   uint64_t len = fileSizeBytes(fp);
   uint64_t bytes_r = 0;
   uint64_t size =  bytes_r + BUFF_SIZE <= len ? BUFF_SIZE : len - bytes_r;
-  loadReads(fp, r0, in_buff, size, true, &bytes_r);
-  
-  // process batches
+  uint64_t cnt = 0;
+  MetaDataEncoder mde;
+  QualityScoreEncoder qse;
+
+  for (int i = 0; ; i++)
+  {
+    bool r_ctrl = bytes_r < len ? true : false;
+    loadReads(fp, r0, in_buff, size, r_ctrl, &bytes_r);
+    if (r0.size() == 0)
+      break;
+    cnt += r0.size();
+    std::cout << "Compressing batch " << i << "\n Entries: " << r0.size() << "\n";
+
+    mde.metadata_compress(r0, argv[2]);
+
+    qse.qualityscore_compress(r0, argv[2]);
+    //std::cout << "Compression finished.\n";
+  }
+  std::cout << "Compression finished [" << cnt << " reads]\n";
+  /*// process batches
   uint32_t cnt = 0;
   for (int i = 0; ; i++) {
     bool r_ctrl = bytes_r < len ? true : false;
@@ -90,39 +110,39 @@ int main(int argc, char *argv[]) {
     if (!(i%2)) {
       thr = std::thread(loadReads, fp, std::ref(r1), in_buff, size, r_ctrl, &bytes_r);
       if (r0.size() > 0) {
-	cnt += r0.size();
-	compress(r0, idx, ival1, ival2, sai, argv[2]);
-	// compress meta
-	// compress quality scores
+	    cnt += r0.size();
+	    //compress(r0, idx, ival1, ival2, sai, argv[2]);
+	    // compress meta
+	    // compress quality scores
       }
       else
-	break;
+	    break;
     }
     
     // read to r0, process r1
     else {
       thr = std::thread(loadReads, fp, std::ref(r0), in_buff, size, r_ctrl, &bytes_r);
       if (r1.size() > 0) {
-	cnt += r1.size();
-	compress(r1, idx, ival1, ival2, sai, argv[2]);
-	// compress meta
-	// compress quality scores	
+	    cnt += r1.size();
+	    //compress(r1, idx, ival1, ival2, sai, argv[2]);
+	    // compress meta
+	    // compress quality scores	
       }
       else 
-	break;
+	    break;
     }
     thr.join();
     printf("processed %u reads\n", cnt);
   }
   thr.join();
- 
-  if (munmap(sai, sa_map_size) == -1) {
-    printf("error: unable to unmap file!\n");
-    exit(1);
-  }
+  */
+  //if (munmap(sai, sa_map_size) == -1) {
+  //  printf("error: unable to unmap file!\n");
+  //  exit(1);
+  //}
 
-  delete[] idx;
-  delete[] in_buff;
+  //delete[] idx;
+  //delete[] in_buff;
  
   return 0;
 }

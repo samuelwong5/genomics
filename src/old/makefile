@@ -1,7 +1,10 @@
 CC = g++
 CFLAGS = -std=c++11 -O2 -Wall
 
-all: rl_encoder lzw_encoder
+all: benchmark
+
+benchmark: benchmark.o bitbuffer.o lzw_encoder.o rl_encoder.o
+	${CC} -g benchmark.o lzw_encoder.o bitbuffer.o rl_encoder.o -o benchmark
 
 lzw_encoder: lzw_encoder.o bitbuffer.o
 	${CC} -g lzw_encoder.o bitbuffer.o -o lzw_encoder
@@ -17,7 +20,10 @@ rl_encoder.o: rl_encoder.cpp rl_encoder.hpp
     
 bitbuffer.o: bitbuffer.cpp bitbuffer.hpp
 	${CC} ${CFLAGS} -c bitbuffer.cpp
-   
+  
+benchmark.o: benchmark.cpp
+	${CC} ${CFLAGS} -c benchmark.cpp  
+  
 clean:
 	rm -rf bf *.o
 

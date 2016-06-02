@@ -76,14 +76,3 @@ void LZWEncoder::reset(void)
     enc_size = (uint8_t) ceil(log(alphabet_size) / log(2));
     max_entry = (uint32_t) pow(2, enc_size);
 }
-
-int main()
-{
-    std::string plaintext = "TOBEORNFGHIJKLMNOPQABFGOABNSODBOUABSIUFQIUBWIFBASIBKABXCKJNAJCNJKASNCKJASNKJCNASDUIHQWUEIDHQIUWDAKSDNKJASNDIUWQHDIUQHDWOTTOBEORTOBEORNOT";
-    LZWEncoder lzw ("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-    std::shared_ptr<BitBuffer> b = lzw.encode(plaintext);
-    b->print();
-    std::cout << "ENCODE: " << plaintext << std::endl;
-    std::string decoded = lzw.decode(b);
-    std::cout << "DECODE: " << decoded << std::endl;
-}

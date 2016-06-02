@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
+#include <iostream>
+#include <string>
 
 /*
  * Utility functions to writing individual bits into a buffer to
@@ -31,6 +33,7 @@ class BitBuffer {
     void print(void);                           // Print the value
     int read_is_end(void);                      // Check if read has ended
     int size(void);                             // Returns size of the buffer in bytes
+    void write_to_file(std::string);
 };
 
 #endif

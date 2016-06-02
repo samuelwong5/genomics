@@ -3,8 +3,8 @@ CFLAGS = -std=c++11 -O2 -Wall
 
 all: metadataencoder
 
-metadataencoder: metadataencoder.o metadatafieldencoder.o alphanumericfieldencoder.o autoincrementingfieldencoder.o constantalphanumericfieldencoder.o numericfieldencoder.o bitbuffer.o
-	${CC} -g metadataencoder.o metadatafieldencoder.o alphanumericfieldencoder.o autoincrementingfieldencoder.o constantalphanumericfieldencoder.o numericfieldencoder.o bitbuffer.o -o metadataencoder
+metadataencoder: metadataencoder.o metadatafieldencoder.o alphanumericfieldencoder.o autoincrementingfieldencoder.o constantalphanumericfieldencoder.o numericfieldencoder.o bitbuffer.o encodeutil.o
+	${CC} -g metadataencoder.o metadatafieldencoder.o alphanumericfieldencoder.o autoincrementingfieldencoder.o constantalphanumericfieldencoder.o numericfieldencoder.o bitbuffer.o encodeutil.o -o metadataencoder
     
 metadataencoder.o: metadataencoder.cpp
 	${CC} ${CFLAGS} -c metadataencoder.cpp
@@ -27,6 +27,9 @@ numericfieldencoder.o: numericfieldencoder.cpp numericfieldencoder.hpp
 bitbuffer.o: bitbuffer.cpp bitbuffer.hpp
 	${CC} ${CFLAGS} -c bitbuffer.cpp  
     
+encodeutil.o: encodeutil.cpp encodeutil.hpp
+	${CC} ${CFLAGS} -c encodeutil.cpp  
+        
 clean:
 	rm -rf bf *.o
 
