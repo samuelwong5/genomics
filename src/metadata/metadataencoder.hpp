@@ -33,6 +33,14 @@ public:
     void encode_separators(void);
     void decode_separators(void);
     MetaDataEncoder() : b(std::shared_ptr<BitBuffer>(new BitBuffer)) {  }
+    ~MetaDataEncoder() 
+    {   // Cleanup
+        for (auto it = fields.begin(); it != fields.end(); it++)
+        {
+            delete *it;
+        }
+    }
+    
     void metadata_compress(std::vector<read_t>&, char *);
 };
 

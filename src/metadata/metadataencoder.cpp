@@ -170,11 +170,10 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
     // Encode sequence identifiers metadata
     
     int entries = reads.size();
-    static bool analyzed = false;
-    if (!analyzed)
+
+    if (fields.size() == 0)
     {
         metadata_analyze(reads, entries);
-        analyzed = true;
     }
 
     b->write(fields.size(), 8);
@@ -204,12 +203,6 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
     ofilename.append(".md");
     b->write_to_file(ofilename);
     std::cout << "\r  - Compressing [100%]\n  - Compressed size: " << b->size() << " bytes\n";
-    
-    // Cleanup
-    for (auto it = fields.begin(); it != fields.end(); it++)
-    {
-        delete *it;
-    }
 }
 
 /*

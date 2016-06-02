@@ -81,13 +81,25 @@ int main(int argc, char *argv[]) {
   uint64_t len = fileSizeBytes(fp);
   uint64_t bytes_r = 0;
   uint64_t size =  bytes_r + BUFF_SIZE <= len ? BUFF_SIZE : len - bytes_r;
-  loadReads(fp, r0, in_buff, size, true, &bytes_r);
-  std::cout << "Compressing batch \n Entries: " << r0.size() << "\n";
+  uint64_t cnt = 0;
   MetaDataEncoder mde;
-  mde.metadata_compress(r0, argv[2]);
   QualityScoreEncoder qse;
-  qse.qualityscore_compress(r0, argv[2]);
-  std::cout << "Compression finished.\n";
+
+  for (int i = 0; ; i++)
+  {
+    bool r_ctrl = bytes_r < len ? true : false;
+    loadReads(fp, r0, in_buff, size, r_ctrl, &bytes_r);
+    if (r0.size() == 0)
+      break;
+    cnt += r0.size();
+    std::cout << "Compressing batch " << i << "\n Entries: " << r0.size() << "\n";
+
+    mde.metadata_compress(r0, argv[2]);
+
+    qse.qualityscore_compress(r0, argv[2]);
+    //std::cout << "Compression finished.\n";
+  }
+  std::cout << "Compression finished [" << cnt << " reads]\n";
   /*// process batches
   uint32_t cnt = 0;
   for (int i = 0; ; i++) {
