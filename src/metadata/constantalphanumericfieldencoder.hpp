@@ -11,6 +11,14 @@ class ConstantAlphanumericFieldEncoder : public MetadataFieldEncoder {
     public:
         ConstantAlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>&);
         ConstantAlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>&, std::string);
+        ConstantAlphanumericFieldEncoder(const ConstantAlphanumericFieldEncoder& cafe) : MetadataFieldEncoder(cafe.buffer)
+        {
+            //std::cout << "Copying CAFE with value: " << value << "... ";
+            value = std::string(cafe.value);
+            //std::cout << "Done.\n";
+        }
+        MetadataFieldEncoder* clone(void) { return new ConstantAlphanumericFieldEncoder(*this); }
+        
         void decode_metadata(void);
         void encode_metadata(void);
         void decode(std::ostream&);

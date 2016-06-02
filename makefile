@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -std=c++11 -O2 -Wall
+CFLAGS = -std=c++11 -O2 -Wall -fopenmp
 BB_CPP_FILES := $(wildcard src/bitbuffer/*.cpp)
 MD_CPP_FILES := $(wildcard src/metadata/*.cpp)
 QS_CPP_FILES := $(wildcard src/quality/*.cpp)

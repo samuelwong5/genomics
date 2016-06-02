@@ -46,7 +46,7 @@ AlphanumericFieldEncoder::decode_metadata(void)
         {
             std::string s("");
             int curr;
-            while (curr = buffer->read(8))
+            while ((curr = buffer->read(8)))
             {
                 s.append(1, curr);
             }
@@ -98,7 +98,7 @@ AlphanumericFieldEncoder::encode(std::string s)
         {
             if (!strncmp(s.c_str(), it->c_str(), len)) 
             {
-                buffer->write(key, width);
+                EncodeUtil::bb_entry(key, (uint8_t) width, encoded);
                 break;
             }
             key++;
@@ -107,15 +107,15 @@ AlphanumericFieldEncoder::encode(std::string s)
     else
     {
         // Write each character to bitbuffer using 8 bits
-        int pad = width - s.length() * 8;
-        for (std::string::iterator it = s.begin(); it != s.end(); ++it)
-            buffer->write(*it, 8);
-        while (pad >= 32) 
-        {
-            buffer->write(0, 32);
-            pad -= 32;
-        }
-        buffer->write(0, pad);
+        //int pad = width - s.length() * 8;
+        //for (std::string::iterator it = s.begin(); it != s.end(); ++it)
+        //    buffer->write(*it, 8);
+        //while (pad >= 32) 
+       // {
+       //     buffer->write(0, 32);
+       //     pad -= 32;
+       // }
+       // buffer->write(0, pad);
     }
 }
 

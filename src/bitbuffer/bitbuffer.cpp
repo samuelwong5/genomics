@@ -29,6 +29,7 @@ BitBuffer::init(void)
     alloc_size = DATA_INIT_SIZE;
 }
 
+
 void
 BitBuffer::write(uint32_t value, uint8_t length)
 {

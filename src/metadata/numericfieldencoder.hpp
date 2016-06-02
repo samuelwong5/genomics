@@ -17,6 +17,14 @@ class NumericFieldEncoder : public MetadataFieldEncoder {
     public:
         NumericFieldEncoder(const std::shared_ptr<BitBuffer>&);
         NumericFieldEncoder(const std::shared_ptr<BitBuffer>&, uint32_t, bool);
+        NumericFieldEncoder(const NumericFieldEncoder& nfe) : MetadataFieldEncoder(nfe.buffer)
+        {
+            width = nfe.width;
+            increment = nfe.increment;
+            prev = nfe.prev;
+        }
+        MetadataFieldEncoder* clone(void) { return new NumericFieldEncoder(*this); }
+        
         void decode_metadata(void);
         void encode_metadata(void);
         void decode(std::ostream&);

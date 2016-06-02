@@ -12,26 +12,6 @@ MetaDataEncoder::metadata_separators(std::string metadata)
 }
 
 
-void 
-MetaDataEncoder::split(std::string& str, std::vector<std::string>& parts) {
-  size_t start, end = 0;
-  static std::string delim = (" #.-:");
-  while (end < str.size()) {
-    start = end;
-    while (start < str.size() && (delim.find(str[start]) != std::string::npos)) {
-      start++;
-    }
-    end = start;
-    while (end < str.size() && (delim.find(str[end]) == std::string::npos)) {
-      end++;
-    }
-    if (end-start != 0) {
-      parts.push_back(std::string(str, start, end-start));
-    }
-  }
-}
-
-
 void
 MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, int entries)
 {   
@@ -48,7 +28,7 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, int entries)
         values.push_back(std::set<std::string>());
     {
         std::vector<std::string> v;
-        split(metadata, v);
+        EncodeUtil::split(metadata, v);
         for (int i = 0; i < num_fields; i++)
             values[i].insert(v[i]);
     }
@@ -59,7 +39,7 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, int entries)
         std::vector<std::string> v;
         metadata = std::string(it->meta_data);
         metadata.erase(0,1);
-        split(metadata, v);
+        EncodeUtil::split(metadata, v);
         for (int i = 0; i < num_fields; i++)
             values[i].insert(v[i]);     
     }
@@ -84,7 +64,7 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, int entries)
                 {
                     numeric = false;
                     max = EncodeUtil::ceil_log(max, 10);
-                    max = max > sit->length() ? max : sit->length();
+                    max = max > (int) sit->length() ? max : sit->length();
                 }
                 else
                 {
@@ -122,6 +102,7 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, int entries)
         }
     }
 }
+
 
 
 void
@@ -162,47 +143,85 @@ MetaDataEncoder::decode_separators(void)
 }
 
 
+void
+compress_parallel(std::vector<read_t>::iterator begin, std::vector<read_t>::iterator end, std::vector<MetadataFieldEncoder*> fencs, std::shared_ptr<std::vector<bb_entry_t> > comp_entries)
+{
+    std::vector<MetadataFieldEncoder*> fencoders;
+    
+    // Clone all field encoders
+    for (MetadataFieldEncoder* fenc : fencs)
+        fencoders.push_back(fenc->clone());
+
+    // Set field encoders to return tuples of compressed values to bb_entry    
+    for (MetadataFieldEncoder* mfep : fencoders) {
+        if (mfep)
+            mfep->set_encoded(comp_entries);
+    }
+    
+    // Compress values
+    int num_fields = fencoders.size();
+    std::string metadata;
+    for (auto it = begin; it != end; it++)
+    {
+        metadata = std::string(it->meta_data);
+        metadata.erase(0,1);
+        std::vector<std::string> v;
+        EncodeUtil::split(metadata, v);       
+        for (int i = 0; i < num_fields; i++)
+            fencoders[i]->encode(v[i]);  
+    }
+    
+    for (MetadataFieldEncoder* fenc : fencoders)
+        delete fenc;
+}
+
+
 void 
 MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
 {
+    // Init
     b->init();
     std::cout << " [SEQUENCE ID/METADATA]\n";
-    // Encode sequence identifiers metadata
-    
     int entries = reads.size();
 
+    // Identify the different fields in the sequence identifiers
     if (fields.size() == 0)
     {
         metadata_analyze(reads, entries);
     }
-
-    b->write(fields.size(), 8);
-    b->write(entries, 24);
-
+ 
+    // Compress sequence identifier fields metadata
+    b->write(fields.size(), 8);         // Number of fields
+    b->write(entries, 24);              // Number of entries
     for (auto it = fields.begin(); it != fields.end(); it++)
         (*it)->encode_metadata();
 
-    encode_separators();      
-    int num_fields = fields.size();
-    
+    // Compress separators
+    encode_separators();  
+
     // Compress metadata entries
-    std::string metadata;
-    for (int rem = 0; rem < entries; rem++)
+    std::shared_ptr<std::vector<bb_entry_t> > bb_entries[N_THREADS];
+
+#pragma omp parallel for num_threads(N_THREADS)    
+    for (int i = 0; i < N_THREADS; i++)
     {
-        if (entries >= 100 && rem % (entries / 100) == 0)
-            printf("\r  - Compressing [%3d%]", rem * 100 / entries);
-        metadata = std::string(reads[rem].meta_data);
-        //std::cout << "\n" << metadata;
-        metadata.erase(0,1);
-        std::vector<std::string> v;
-        split(metadata, v);       
-        for (int i = 0; i < num_fields; i++)
-            fields[i]->encode(v[i]);  
+        bb_entries[i] = std::make_shared<std::vector<bb_entry_t> >();
+        int boffset = entries * i / N_THREADS;
+        int eoffset = entries * (i+1) / N_THREADS;
+
+        compress_parallel(reads.begin() + boffset, reads.begin() + eoffset, fields, bb_entries[i]);
+        //std::cout << "Compressed entries " << boffset << " to " << eoffset << "\n";
     }
+    
+    for (int i = 0; i < N_THREADS; i++)
+        for (std::vector<bb_entry_t>::iterator it = bb_entries[i]->begin(); it != bb_entries[i]->end(); it++)
+            b->write(it->value, it->length);
+        
+    
     std::string ofilename(filename);
     ofilename.append(".md");
     b->write_to_file(ofilename);
-    std::cout << "\r  - Compressing [100%]\n  - Compressed size: " << b->size() << " bytes\n";
+    std::cout << " - Compressed size: " << b->size() << " bytes\n";
 }
 
 /*
@@ -317,7 +336,7 @@ encode(std::string ifilename, std::string ofilename, int entries = 1)
             printf("\r  - Compressing [%3d%%]", rem * 100 / entries);
         metadata.erase(0,1);
         std::vector<std::string> v;
-        split(metadata, v);       
+        EncodeUtil::split(metadata, v);       
         for (int i = 0; i < num_fields; i++)
             fields[i]->encode(v[i]);
         std::getline(file, metadata);

@@ -28,9 +28,11 @@ NumericFieldEncoder::encode_metadata(void)
 {
     // Field type = 10
     buffer->write(8, 4);
+    //EncodeUtils::bb_entry(8, 4, encoded);
     
     // Width
     buffer->write(width, 12);
+    //EncodeUtils::bb_entry(width, 12, encoded);    
 }
 
 
@@ -40,12 +42,12 @@ NumericFieldEncoder::encode(std::string s)
     int val = atoi(s.c_str());
     if (increment)
     {
-        buffer->write(val - prev, width);
+        EncodeUtil::bb_entry(val - prev, width, encoded);
         prev = val;
     }
     else
     {
-        buffer->write(val, width);
+        EncodeUtil::bb_entry(val, width, encoded);
     }
 }
 
