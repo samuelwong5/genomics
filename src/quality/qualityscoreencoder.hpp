@@ -9,30 +9,43 @@
 
 class QualityScoreEncoder {
   private:
+    // Arithmetic encoding constants
     static const uint8_t FREQUENCY_BITS  = 32;
     static const uint8_t VALUE_BITS      = 32;
-    static const uint64_t MAX_VALUE     = (uint64_t(1) << VALUE_BITS) - 1;
-    static const uint64_t MAX_FREQ      = (uint64_t(1) << FREQUENCY_BITS) - 1;
-    static const uint64_t ONE_FOURTH    = uint64_t(1) << (VALUE_BITS - 2);;
-    static const uint64_t ONE_HALF      = 2 * ONE_FOURTH;
-    static const uint64_t THREE_FOURTHS = 3 * ONE_FOURTH;
+    static const uint64_t MAX_VALUE      = (uint64_t(1) << VALUE_BITS) - 1;
+    static const uint64_t MAX_FREQ       = (uint64_t(1) << FREQUENCY_BITS) - 1;
+    static const uint64_t ONE_FOURTH     = uint64_t(1) << (VALUE_BITS - 2);;
+    static const uint64_t ONE_HALF       = 2 * ONE_FOURTH;
+    static const uint64_t THREE_FOURTHS  = 3 * ONE_FOURTH;
+    
+    // Arithmetic encoding values
+    int pending_bits                     = 0;
+    uint64_t high                        = MAX_VALUE;
+    uint64_t low                         = 0;
+    
+    // Domain of inputs
     static const int BASE_ALPHABET_SIZE  = 44;
-    static const int MAX_CONSEC_ZERO     = 20;
+    static const int BASE_CHAR_OFFSET    = 33;
+    static const int MAX_CONSEC_ZERO     = 60;
     static const int SYMBOL_SIZE         = BASE_ALPHABET_SIZE + MAX_CONSEC_ZERO + 1; // Last is EOF
-    uint64_t frequency[SYMBOL_SIZE];
-    std::shared_ptr<BitBuffer> b;
-    int pending_bits = 0;
-    uint64_t high = MAX_VALUE;
-    uint64_t low = 0;
+    
+    uint64_t frequency[SYMBOL_SIZE];                   // Frequencies to calculate encoding
+    std::shared_ptr<BitBuffer> b;                      // Buffer for file IO
     bool freeze = false;                               // Stop updating frequency table
     
   public:
     QualityScoreEncoder();
     void reset(void);
-    void encode_symbol(uint32_t);
-    void encode_entry(std::string);
-    void decode_entry(std::ofstream&, int);
-    void update(int);
-    void encode_flush(void);
     void qualityscore_compress(std::vector<read_t>&, char*);
+    static inline void update(int, uint64_t*);
+    static void translate_symbol(std::vector<read_t>::iterator, std::vector<read_t>::iterator, std::vector<uint8_t>&, uint64_t*);
+    void encode_symbol(uint32_t);
+    void encode_flush(void);
+    
+    // Deprecated
+    //void encode_entry(std::string);
+    
+    // To debug
+    //void decode_entry(std::ofstream&, int);
+    
 };

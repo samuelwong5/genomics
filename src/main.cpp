@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
     if (r0.size() == 0)
       break;
     cnt += r0.size();
-    std::cout << "Compressing batch " << i << "\n Entries: " << r0.size() << "\n";
+    std::cout << "Compressing batch " << i << "\n Entries: " << r0.size() << "\n Filename: " << argv[2] << "\n";
 
     mde.metadata_compress(r0, argv[2]);
 

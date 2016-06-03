@@ -221,7 +221,7 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
     std::string ofilename(filename);
     ofilename.append(".md");
     b->write_to_file(ofilename);
-    std::cout << " - Compressed size: " << b->size() << " bytes\n";
+    std::cout << "  - Compressed size: " << b->size() << " bytes --> " << ofilename << "\n";
 }
 
 /*
