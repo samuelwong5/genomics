@@ -22,6 +22,7 @@ class QualityScoreEncoder {
     int pending_bits                     = 0;
     uint64_t high                        = MAX_VALUE;
     uint64_t low                         = 0;
+    uint64_t value                       = 0;
     
     // Domain of inputs
     static const int BASE_ALPHABET_SIZE  = 44;
@@ -32,20 +33,21 @@ class QualityScoreEncoder {
     uint64_t frequency[SYMBOL_SIZE];                   // Frequencies to calculate encoding
     std::shared_ptr<BitBuffer> b;                      // Buffer for file IO
     bool freeze = false;                               // Stop updating frequency table
+    uint32_t entry_len;
     
   public:
     QualityScoreEncoder();
     void reset(void);
     void qualityscore_compress(std::vector<read_t>&, char*);
+    void qualityscore_decompress(std::vector<read_t>&, char*);
     static inline void update(int, uint64_t*);
     static void translate_symbol(std::vector<read_t>::iterator, std::vector<read_t>::iterator, std::vector<uint8_t>&, uint64_t*);
     void encode_symbol(uint32_t);
     void encode_flush(void);
+    void decode_entry(read_t&);
     
     // Deprecated
     //void encode_entry(std::string);
-    
-    // To debug
-    //void decode_entry(std::ofstream&, int);
+
     
 };

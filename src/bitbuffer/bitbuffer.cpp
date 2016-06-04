@@ -128,10 +128,10 @@ BitBuffer::size(void)
 }
 
 
-int 
+bool
 BitBuffer::read_is_end(void)
 {
-    return read_offset >=write_offset && write_it == read_it;
+    return buffer.size() == read_index;
 }
 
 
@@ -202,11 +202,9 @@ BitBuffer::read_from_file(std::string filename)
 {
     std::ifstream fs(filename, std::ifstream::ate | std::ifstream::binary);
     std::streamsize size = fs.tellg();
-    //std::cout << "Filesize: " << size << "\n";
     buffer.resize(size / 4);
     write_it = buffer.begin();
     read_it = buffer.begin();
-    //std::cout << "Buffer size: " << buffer.size() << "\n";
     fs.seekg( 0, std::ios::beg );
     write_index = size / 4;
     fs.read((char*)buffer.data(), size); 

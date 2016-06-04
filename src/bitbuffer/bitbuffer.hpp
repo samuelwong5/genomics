@@ -46,13 +46,21 @@ class BitBuffer {
     void write_to_file(std::string);            // Write buffer to file
     void read_from_file(std::string);           // Read buffer from file
     
-    int read_is_end(void);                      // Check if read_it at end of buffer
+    bool read_is_end(void);                     // Check if read_it at end of buffer
     void read_seek(uint32_t);                   // Seek read pointer
     void read_pad(void);                        // Seek read pointer to start of next uint32_t
     void write_pad(void);                       // Pad write pointer to start of next uint32_t
     
     int size(void);                             // Returns size of the buffer in bytes
     void print(void);                           // Print the buffer in binary
+    
+    void read_pad_back(void){ read_offset = 0; }// Seek read pointer to start of current uint32_t
+    void print_read_ptr(void) { std::cout << read_index << " [" << read_offset << "] (total: " << buffer.size() << ")\n"; }
+    void print_section(int size)
+    {
+        for (int i = 0; i < size; i++)
+            std::cout << (read_index + i) << ": " << buffer[read_index + i] << std::endl;
+    }
 };
 
 #endif

@@ -1,17 +1,44 @@
-/* main.cpp ----- James Arram 2016 */
-
+#include <iostream>
+#include "metadata/metadataencoder.hpp"
 #include "sequence/def.hpp"
 #include "sequence/file.hpp"
 #include "sequence/inc.hpp"
 #include "sequence/reads.hpp"
 #include "sequence/index.hpp"
 #include "sequence/cmp_sw.hpp"
-#include <iostream>
-#include "metadata/metadataencoder.hpp"
 #include "quality/qualityscoreencoder.hpp"
 
+void decompress(char *);
+void compress(char **);
+
+void decompress(char *filename)
+{
+  QualityScoreEncoder qse;  
+  std::vector<read_t> r0;
+  qse.qualityscore_decompress(r0, filename);   
+  printf("%s\n", r0[0].q_score);      
+  printf("%s\n", r0[10000].q_score);      
+}
+
 int main(int argc, char *argv[]) {
+  // check usage
+  if (argc != 3) {
+    printf("Usage: %s [--compress|--decompress] <fastq file>\n", argv[0]);
+    exit(1);
+  }
   
+  if (strncmp(argv[1], "--compress", 10) == 0)
+      compress(argv);      
+  else if (strncmp(argv[1], "--decompress", 12) == 0)
+      decompress(argv[2]);
+  else
+  {
+      printf("Unknown flag: %s\n", argv[1]);
+  }
+}
+
+void compress(char** argv)
+{
   FILE *fp = NULL;
   index_t *idx = NULL;
   uint32_t *sai = NULL;
@@ -21,12 +48,6 @@ int main(int argc, char *argv[]) {
   char f_name[128];
   std::thread thr;
   struct timeval  tv1, tv2;
- 
-  // check usage
-  if (argc != 3) {
-    printf("usage: %s <fmt file> <fastq file>\n", argv[0]);
-    exit(1);
-  }
   /*
   //printf("loading index data ... "); fflush(stdout);
   gettimeofday(&tv1, NULL);
@@ -143,6 +164,4 @@ int main(int argc, char *argv[]) {
 
   //delete[] idx;
   //delete[] in_buff;
- 
-  return 0;
 }
