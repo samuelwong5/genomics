@@ -40,7 +40,9 @@ public:
             delete *it;
         }
     }
-    
+    void decode_fields(void);
+    void decode_entry(read_t&);
+    void metadata_decompress(std::vector<read_t>&, char *);
     void metadata_compress(std::vector<read_t>&, char *);
 };
 

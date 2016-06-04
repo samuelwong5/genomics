@@ -14,10 +14,20 @@ void compress(char **);
 void decompress(char *filename)
 {
   QualityScoreEncoder qse;  
+  MetaDataEncoder mde;
   std::vector<read_t> r0;
+  mde.metadata_decompress(r0, filename);
   qse.qualityscore_decompress(r0, filename);   
-  printf("%s\n", r0[0].q_score);      
-  printf("%s\n", r0[10000].q_score);      
+  std::string ofilename(filename);
+  ofilename.append(".original");
+  std::ofstream of(ofilename);
+  for (auto it = r0.begin(); it != r0.end(); it++)
+  {
+      of << it->meta_data << "\n";
+      // decompress sequence here
+      of << "\n+\n" << it->q_score << "\n";
+  }
+  of.close();
 }
 
 int main(int argc, char *argv[]) {

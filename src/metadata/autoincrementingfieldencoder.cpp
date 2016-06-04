@@ -40,8 +40,8 @@ AutoIncrementingFieldEncoder::encode(std::string s)
 }
 
 
-void
-AutoIncrementingFieldEncoder::decode(std::ostream& ss)
+char *
+AutoIncrementingFieldEncoder::decode(char* md)
 {
-    ss << current++;
+    return md + sprintf(md, "%d", current++);
 }

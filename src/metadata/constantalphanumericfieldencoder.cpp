@@ -44,8 +44,10 @@ ConstantAlphanumericFieldEncoder::encode(std::string s)
 }
 
 
-void
-ConstantAlphanumericFieldEncoder::decode(std::ostream& ss)
+char *
+ConstantAlphanumericFieldEncoder::decode(char * md)
 {
-    ss << value;
+    for (uint32_t i = 0; i < value.length(); i++)
+        *(md++) = value[i];
+    return md;
 }

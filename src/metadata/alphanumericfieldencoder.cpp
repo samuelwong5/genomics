@@ -120,17 +120,20 @@ AlphanumericFieldEncoder::encode(std::string s)
 }
 
 
-void
-AlphanumericFieldEncoder::decode(std::ostream& ss)
+char *
+AlphanumericFieldEncoder::decode(char *md)
 {
     if (enable_map)
     {
         uint32_t key = buffer->read(width);
-        ss << map[key];
+        std::string value = map[key];
+        for (uint32_t i = 0; i < value.length(); i++)
+            *(md++) = value[i];
+
     } 
     else // TODO: Test integrity of non-mapped values
     {
-        int size = width;
+        /*int size = width;
         while (size > 0) 
         {
             char c = buffer->read(8);
@@ -145,6 +148,7 @@ AlphanumericFieldEncoder::decode(std::ostream& ss)
             buffer->read(32);
             size -= 32;
         }
-        buffer->read(size);
+        buffer->read(size);*/
     }
+    return md;
 }

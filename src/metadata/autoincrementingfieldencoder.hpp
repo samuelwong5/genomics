@@ -19,7 +19,7 @@ class AutoIncrementingFieldEncoder : public MetadataFieldEncoder {
         
         void decode_metadata(void);
         void encode_metadata(void);
-        void decode(std::ostream&);
+        char* decode(char *);
         void encode(std::string);
         void set_current(uint32_t c) { current = c; } // For multithreading
         uint32_t get_width(void) { return 0; }
