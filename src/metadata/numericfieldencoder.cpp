@@ -67,3 +67,4 @@ NumericFieldEncoder::decode(char* md)
        return md + sprintf(md, "%d", delta);
     }
 }
+

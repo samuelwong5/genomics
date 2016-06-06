@@ -232,32 +232,32 @@ MetaDataEncoder::decode_entry(read_t& read)
 }
 
 
-void
-MetaDataEncoder::metadata_decompress(std::vector<read_t>& reads, char *filename)
+MetaDataEncoder::MetaDataEncoder(char *filename) : b(std::shared_ptr<BitBuffer>(new BitBuffer))
 {
-    std::cout << " [SEQUENCE ID/METADATA]\n";
     std::string ifn(filename);
     ifn.append(".md");
     b->read_from_file(ifn);
-    uint32_t entries = 0;
+}
+
+bool
+MetaDataEncoder::metadata_decompress(std::vector<read_t>& reads, char *filename)
+{
+    //std::cout << " [SEQUENCE ID/METADATA]\n";
+    
     uint32_t curr_entry = 0;
     // Decode fields and separators
-    int test = 0;
-    while (test++ < 2 && !b->read_is_end())
+    num_fields = b->read(8);
+    uint32_t entries = b->read(24);
+    if (reads.size() < entries) 
+        reads.resize(entries);
+    decode_fields();
+    decode_separators();
+    for (uint32_t i = 0; i < entries; i++)
     {
-        num_fields = b->read(8);
-        uint32_t batch_entries = b->read(24);
-        entries += batch_entries;
-        if (reads.size() < entries)
-            reads.resize(entries);
-        decode_fields();
-        decode_separators();
-        for (uint32_t i = 0; i < batch_entries; i++)
-        {
-            decode_entry(reads[curr_entry++]);
-        }
-        b->read_pad();
+        decode_entry(reads[curr_entry++]);
     }
+    b->read_pad();
+    return b->read_is_end();
 }
 
 

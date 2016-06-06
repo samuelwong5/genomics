@@ -183,42 +183,40 @@ QualityScoreEncoder::translate_symbol(std::vector<read_t>::iterator begin, std::
 }
 
 
+QualityScoreEncoder::QualityScoreEncoder(char *filename)
+{
+    b = std::shared_ptr<BitBuffer>(new BitBuffer);
+    std::string ifn(filename);
+    ifn.append(".qs");
+    b->read_from_file(ifn);
+}
+
 void
 QualityScoreEncoder::qualityscore_decompress(std::vector<read_t>& reads, char *filename)
 {
-    std::string ifn(filename);
-    ifn.append(".qs");
-    b->init();
-    b->read_from_file(ifn);
-    uint32_t entries = 0; 
     uint32_t curr_entry = 0;
-    std::cout << " [QUALITY SCORES]\n";
-    while (!b->read_is_end())
+    b->read_pad_back();
+    uint32_t entries = b->read(32);
+    entry_len = b->read(32);
+    reset();
+        
+    if (reads.size() < entries)
+        reads.resize(entries);
+        
+    // Read in frequencies
+    for (int i = 0; i < SYMBOL_SIZE; i++)
     {
-        b->read_pad_back();
-        uint32_t batch_entries = b->read(32);
-        entries += batch_entries;
-        entry_len = b->read(32);
-        reset();
+        frequency[i] = b->read(32);            
+    }    
+    value = b->read(VALUE_BITS);
+    pending_bits = 0;
+    high = MAX_VALUE;
+    low = 0;
         
-        if (reads.size() < entries)
-            reads.resize(entries);
-        
-        // Read in frequencies
-        for (int i = 0; i < SYMBOL_SIZE; i++)
-        {
-            frequency[i] = b->read(32);            
-        }    
-        value = b->read(VALUE_BITS);
-        pending_bits = 0;
-        high = MAX_VALUE;
-        low = 0;
-        
-        // Decode
-        for (uint32_t i = 0; i < batch_entries; i++)
-        {
-            decode_entry(reads[curr_entry++]);
-        }
+    // Decode
+    for (uint32_t i = 0; i < entries; i++)
+    {
+        decode_entry(reads[curr_entry++]);
     }
 }
 

@@ -37,6 +37,7 @@ class QualityScoreEncoder {
     
   public:
     QualityScoreEncoder();
+    QualityScoreEncoder(char *);
     void reset(void);
     void qualityscore_compress(std::vector<read_t>&, char*);
     void qualityscore_decompress(std::vector<read_t>&, char*);
