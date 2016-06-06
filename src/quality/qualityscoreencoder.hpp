@@ -37,6 +37,7 @@ class QualityScoreEncoder {
     
   public:
     QualityScoreEncoder();
+    QualityScoreEncoder(char *);
     void reset(void);
     void qualityscore_compress(std::vector<read_t>&, char*);
     void qualityscore_decompress(std::vector<read_t>&, char*);
@@ -45,9 +46,5 @@ class QualityScoreEncoder {
     void encode_symbol(uint32_t);
     void encode_flush(void);
     void decode_entry(read_t&);
-    
-    // Deprecated
-    //void encode_entry(std::string);
 
-    
 };

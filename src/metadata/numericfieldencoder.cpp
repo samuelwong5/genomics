@@ -52,18 +52,18 @@ NumericFieldEncoder::encode(std::string s)
 }
 
 
-void
-NumericFieldEncoder::decode(std::ostream& ss)
+char *
+NumericFieldEncoder::decode(char* md)
 {
     int delta = (int) buffer->read(width);
     if (increment)
     {  
        int curr = delta + prev;
        prev = curr;
-       ss << curr; 
+       return md + sprintf(md, "%d", curr);
     }
     else
     {
-        ss << delta;
+       return md + sprintf(md, "%d", delta);
     }
 }

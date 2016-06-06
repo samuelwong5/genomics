@@ -13,11 +13,29 @@ void compress(char **);
 
 void decompress(char *filename)
 {
-  QualityScoreEncoder qse;  
+  QualityScoreEncoder qse(filename);  
+  MetaDataEncoder mde(filename);
   std::vector<read_t> r0;
-  qse.qualityscore_decompress(r0, filename);   
-  printf("%s\n", r0[0].q_score);      
-  printf("%s\n", r0[10000].q_score);      
+  bool is_end = false;
+  std::string ofilename(filename);
+  ofilename.append(".original");
+  std::ofstream of(ofilename);
+  while (!is_end) 
+  {
+    is_end = mde.metadata_decompress(r0, filename);
+    // SEQUENCE DECOMPRESS 
+    qse.qualityscore_decompress(r0, filename);   
+   
+    // Write reads into file
+    for (auto it = r0.begin(); it != r0.end(); it++)
+    {
+      of << it->meta_data << "\n";
+      // decompress sequence here
+      of << "\n+\n" << it->q_score << "\n";
+    }
+    r0.clear();
+  }
+  of.close();
 }
 
 int main(int argc, char *argv[]) {
@@ -48,12 +66,12 @@ void compress(char** argv)
   char f_name[128];
   std::thread thr;
   struct timeval  tv1, tv2;
-  /*
+  
   //printf("loading index data ... "); fflush(stdout);
   gettimeofday(&tv1, NULL);
 
-  // load index
-  sprintf(f_name, "%s%s", argv[1], ".idx");
+  //load index
+  sprintf(f_name, "%s%s", argv[3], ".idx");
   openFile(&fp, f_name, "rb");
   uint64_t index_bytes = fileSizeBytes(fp);
   idx = new index_t [index_bytes/sizeof(index_t)];
@@ -65,25 +83,25 @@ void compress(char** argv)
   fclose(fp);
 
   // load 1-step intervals
-  sprintf(f_name, "%s%s", argv[1], ".1sai");
+  sprintf(f_name, "%s%s", argv[3], ".1sai");
   openFile(&fp, f_name, "rb");
   readFile(fp, ival1, 4*sizeof(ival_t));
   fclose(fp);
   
   // load 2-step intervals
-  sprintf(f_name, "%s%s", argv[1], ".2sai");
+  sprintf(f_name, "%s%s", argv[3], ".2sai");
   openFile(&fp, f_name, "rb");
   readFile(fp, ival2, 16*sizeof(ival_t));
   fclose(fp);
 
   // load suffix array
-  sprintf(f_name, "%s%s", argv[1], ".sai");
+  sprintf(f_name, "%s%s", argv[3], ".sai");
   mapSuffixArray(f_name, &sai, &sa_map_size);
 
   gettimeofday(&tv2, NULL);
   printf("OK [%.2f s]\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
 	 (double) (tv2.tv_sec - tv1.tv_sec));
-*/
+
   // allocate input buffer
   char *in_buff = new char [BUFF_SIZE+512];
   if (!in_buff) {
@@ -105,7 +123,7 @@ void compress(char** argv)
   uint64_t cnt = 0;
   MetaDataEncoder mde;
   QualityScoreEncoder qse;
-
+/*
   for (int i = 0; ; i++)
   {
     bool r_ctrl = bytes_r < len ? true : false;
@@ -121,8 +139,8 @@ void compress(char** argv)
     //std::cout << "Compression finished.\n";
   }
   std::cout << "Compression finished [" << cnt << " reads]\n";
-  /*// process batches
-  uint32_t cnt = 0;
+  */
+  // process batches
   for (int i = 0; ; i++) {
     bool r_ctrl = bytes_r < len ? true : false;
     size = bytes_r + BUFF_SIZE <= len ? BUFF_SIZE : len - bytes_r; 
@@ -134,7 +152,9 @@ void compress(char** argv)
 	    cnt += r0.size();
 	    //compress(r0, idx, ival1, ival2, sai, argv[2]);
 	    // compress meta
-	    // compress quality scores
+	    mde.metadata_compress(r0, argv[2]);
+            // compress quality scores
+            qse.qualityscore_compress(r0, argv[2]);
       }
       else
 	    break;
@@ -153,15 +173,15 @@ void compress(char** argv)
 	    break;
     }
     thr.join();
-    printf("processed %u reads\n", cnt);
+    printf("processed %llu reads\n", cnt);
   }
   thr.join();
-  */
-  //if (munmap(sai, sa_map_size) == -1) {
-  //  printf("error: unable to unmap file!\n");
-  //  exit(1);
-  //}
+  
+  if (munmap(sai, sa_map_size) == -1) {
+    printf("error: unable to unmap file!\n");
+    exit(1);
+  }
 
-  //delete[] idx;
-  //delete[] in_buff;
+  delete[] idx;
+  delete[] in_buff;
 }

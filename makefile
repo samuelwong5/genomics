@@ -1,4 +1,4 @@
-CC = g++
+CC = /opt/gcc-4.9.2/bin/g++
 CFLAGS = -std=c++11 -O2 -Wall -fopenmp
 BB_CPP_FILES := $(wildcard src/bitbuffer/*.cpp)
 MD_CPP_FILES := $(wildcard src/metadata/*.cpp)
