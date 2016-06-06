@@ -40,8 +40,8 @@ void decompress(char *filename)
 
 int main(int argc, char *argv[]) {
   // check usage
-  if (argc != 3) {
-    printf("Usage: %s [--compress|--decompress] <fastq file>\n", argv[0]);
+  if (argc < 3) {
+    printf("Usage: %s [--compress|--decompress] <fastq file> <idx>\n", argv[0]);
     exit(1);
   }
   
@@ -69,7 +69,7 @@ void compress(char** argv)
   
   //printf("loading index data ... "); fflush(stdout);
   gettimeofday(&tv1, NULL);
-
+  /*
   //load index
   sprintf(f_name, "%s%s", argv[3], ".idx");
   openFile(&fp, f_name, "rb");
@@ -97,7 +97,7 @@ void compress(char** argv)
   // load suffix array
   sprintf(f_name, "%s%s", argv[3], ".sai");
   mapSuffixArray(f_name, &sai, &sa_map_size);
-
+*/
   gettimeofday(&tv2, NULL);
   printf("OK [%.2f s]\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
 	 (double) (tv2.tv_sec - tv1.tv_sec));
@@ -123,6 +123,7 @@ void compress(char** argv)
   uint64_t cnt = 0;
   MetaDataEncoder mde;
   QualityScoreEncoder qse;
+  loadReads(fp, r0, in_buff, size, true, &bytes_r);
 /*
   for (int i = 0; ; i++)
   {
@@ -144,8 +145,8 @@ void compress(char** argv)
   for (int i = 0; ; i++) {
     bool r_ctrl = bytes_r < len ? true : false;
     size = bytes_r + BUFF_SIZE <= len ? BUFF_SIZE : len - bytes_r; 
-    
-    // read to r1, process r0
+    printf("Batch: %d [%d] [%d]\n", i, r0.size(), r1.size());   
+    // read to r1, proess r0
     if (!(i%2)) {
       thr = std::thread(loadReads, fp, std::ref(r1), in_buff, size, r_ctrl, &bytes_r);
       if (r0.size() > 0) {
