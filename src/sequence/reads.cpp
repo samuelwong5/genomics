@@ -132,46 +132,50 @@ void packRevComp(char *sym, uint8_t *pck, uint8_t len)
 // reverse complement string
 void revComp(char *sym, uint8_t len)
 {
-  char *p1 = &sym[0];
-  char *p2 = &sym[len-1];
+  char *p1 = sym;
+  char *p2 = p1+len-1;
   char tmp1;
   char tmp2;
  
- while (p2 >= p1) {
+ while (p2 > p1) {
     tmp1 = *p1;
     tmp2 = *p2;
     
     switch (tmp1) {
-    case 'A': *p2-- = 'T'; break;
-    case 'C': *p2-- = 'G'; break;
-    case 'G': *p2-- = 'C'; break;
-    case 'T': *p2-- = 'A'; break;
+    case 'A': *p2 = 'T'; break;
+    case 'C': *p2 = 'G'; break;
+    case 'G': *p2 = 'C'; break;
+    case 'T': *p2 = 'A'; break;
     }
     
     switch (tmp2) {
-    case 'A': *p1++ = 'T'; break;
-    case 'C': *p1++ = 'G'; break;
-    case 'G': *p1++ = 'C'; break;
-    case 'T': *p1++ = 'A'; break;
+    case 'A': *p1 = 'T'; break;
+    case 'C': *p1 = 'G'; break;
+    case 'G': *p1 = 'C'; break;
+    case 'T': *p1 = 'A'; break;
     }
+    
+    p2--;
+    p1++;
   }
 }
 
 // reverse string
 void reverse(char *sym, uint8_t len)
 {
-  char *p1 = &sym[0];
-  char *p2 = &sym[len-1];
+  char *p1 = sym;
+  char *p2 = p1+len-1;
   char tmp;
   
-  while (p2 >= p1) {
+  while (p2 > p1) {
     tmp = *p1;
-    *p1++ = *p2;
-    *p2-- = tmp;
+    *p1 = *p2;
+    *p2 = tmp;
+    p2--;
+    p1++;
   }
 }
  
-
 // test if captured new entry or a quality score
 uint64_t testEntry(FILE *fp, char *buffer, uint64_t len) 
 {

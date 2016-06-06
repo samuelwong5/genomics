@@ -142,7 +142,7 @@ QualityScoreEncoder::translate_symbol(std::vector<read_t>::iterator begin, std::
     uint32_t consec = 0;
     char prev = 0;
     // Ignore last '\0'
-    uint32_t len = begin->seq_len - 1;
+    uint32_t len = begin->seq_len;
     for (auto it = begin; it != end; it++)
     {
         char *entry = it->q_score;
@@ -228,7 +228,7 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
     b->init();
     int entries = reads.size();
     b->write(entries, 32);
-    int entry_len = reads[0].seq_len - 1;
+    int entry_len = reads[0].seq_len;
     b->write(entry_len, 32);
 
     

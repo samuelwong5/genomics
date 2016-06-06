@@ -10,6 +10,7 @@ void openFile(FILE **fp, char *f_name, const char *mode)
     printf("error: unable to open file '%s'!\n", f_name);
     exit(1);
   }
+  //printf("FP: %p\n", *fp);
   setvbuf(*fp, NULL, _IOFBF, 1024*1024*64);
 }
 
@@ -38,6 +39,7 @@ uint64_t fileSizeBytes(FILE *fp)
 // read file
 void readFile(FILE *fp, void *a, uint64_t n_bytes)
 {
+  //printf("readfile fp: %p\n", fp);
   if (fread(a, n_bytes, 1, fp) != 1) {
     printf("error: unable to read file!\n");
     exit(1);
@@ -74,7 +76,7 @@ void mapSuffixArray(char *f_name, uint32_t **sai, uint64_t *map_size)
   f_size += page_size-(f_size%page_size);
   *map_size = f_size;
 
-  *sai = (uint32_t*) mmap(0, f_size, PROT_READ, MAP_PRIVATE|MAP_LOCKED, fd, 0);
+  *sai = (uint32_t*) mmap(0, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
   if (*sai == MAP_FAILED) {
     close(fd);
     printf("error: unable to map file\n");

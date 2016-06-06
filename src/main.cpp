@@ -5,13 +5,13 @@
 #include "sequence/inc.hpp"
 #include "sequence/reads.hpp"
 #include "sequence/index.hpp"
-#include "sequence/cmp_sw.hpp"
+#include "sequence/cmp_seq.hpp"
 #include "quality/qualityscoreencoder.hpp"
 
 void decompress(char *);
 void compress(char **);
 
-void decompress(char *filename)
+void decompress(char *filename, char * fmt)
 {
   QualityScoreEncoder qse(filename);  
   MetaDataEncoder mde(filename);
@@ -20,21 +20,28 @@ void decompress(char *filename)
   std::string ofilename(filename);
   ofilename.append(".original");
   std::ofstream of(ofilename);
+  dcmp_fps dfps;
+  decompress_init(dfps, filename, fmt);
   while (!is_end) 
   {
+    std::cout << "Decompressing metadata\n";
     is_end = mde.metadata_decompress(r0, filename);
-    // SEQUENCE DECOMPRESS 
+    std::cout << r0.size() << "entries" << std::endl;
+    decompressSeq(r0, dfps.ref, dfps);
+    std::cout << "Decompressing qs\n";
     qse.qualityscore_decompress(r0, filename);   
-   
+    std::cout << r0.size() << "entries" << std::endl;
     // Write reads into file
     for (auto it = r0.begin(); it != r0.end(); it++)
     {
-      of << it->meta_data << "\n";
-      // decompress sequence here
-      of << "\n+\n" << it->q_score << "\n";
+       of << it->meta_data << "\n";
+       of << it->sym; 
+       of << "\n+\n" << it->q_score << "\n";
     }
     r0.clear();
   }
+  for (int i = 0; i < 5; i++)
+      fclose(dfps.fp[i]);
   of.close();
 }
 
@@ -48,7 +55,7 @@ int main(int argc, char *argv[]) {
   if (strncmp(argv[1], "--compress", 10) == 0)
       compress(argv);      
   else if (strncmp(argv[1], "--decompress", 12) == 0)
-      decompress(argv[2]);
+      decompress(argv[2], argv[3]);
   else
   {
       printf("Unknown flag: %s\n", argv[1]);
@@ -69,7 +76,7 @@ void compress(char** argv)
   
   //printf("loading index data ... "); fflush(stdout);
   gettimeofday(&tv1, NULL);
-  /*
+  
   //load index
   sprintf(f_name, "%s%s", argv[3], ".idx");
   openFile(&fp, f_name, "rb");
@@ -97,7 +104,7 @@ void compress(char** argv)
   // load suffix array
   sprintf(f_name, "%s%s", argv[3], ".sai");
   mapSuffixArray(f_name, &sai, &sa_map_size);
-*/
+
   gettimeofday(&tv2, NULL);
   printf("OK [%.2f s]\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
 	 (double) (tv2.tv_sec - tv1.tv_sec));
@@ -124,24 +131,8 @@ void compress(char** argv)
   MetaDataEncoder mde;
   QualityScoreEncoder qse;
   loadReads(fp, r0, in_buff, size, true, &bytes_r);
-/*
-  for (int i = 0; ; i++)
-  {
-    bool r_ctrl = bytes_r < len ? true : false;
-    loadReads(fp, r0, in_buff, size, r_ctrl, &bytes_r);
-    if (r0.size() == 0)
-      break;
-    cnt += r0.size();
-    std::cout << "Compressing batch " << i << "\n Entries: " << r0.size() << "\n Filename: " << argv[2] << "\n";
-
-    mde.metadata_compress(r0, argv[2]);
-
-    qse.qualityscore_compress(r0, argv[2]);
-    //std::cout << "Compression finished.\n";
-  }
-  std::cout << "Compression finished [" << cnt << " reads]\n";
-  */
   // process batches
+  std::cout << "BEGIN COMPRESSION...\n";
   for (int i = 0; ; i++) {
     bool r_ctrl = bytes_r < len ? true : false;
     size = bytes_r + BUFF_SIZE <= len ? BUFF_SIZE : len - bytes_r; 
@@ -151,7 +142,7 @@ void compress(char** argv)
       thr = std::thread(loadReads, fp, std::ref(r1), in_buff, size, r_ctrl, &bytes_r);
       if (r0.size() > 0) {
 	    cnt += r0.size();
-	    //compress(r0, idx, ival1, ival2, sai, argv[2]);
+            compressSeq(r0, idx, ival1, ival2, sai, argv[2]);
 	    // compress meta
 	    mde.metadata_compress(r0, argv[2]);
             // compress quality scores
@@ -166,9 +157,11 @@ void compress(char** argv)
       thr = std::thread(loadReads, fp, std::ref(r0), in_buff, size, r_ctrl, &bytes_r);
       if (r1.size() > 0) {
 	    cnt += r1.size();
-	    //compress(r1, idx, ival1, ival2, sai, argv[2]);
+	    compressSeq(r1, idx, ival1, ival2, sai, argv[2]);
 	    // compress meta
-	    // compress quality scores	
+	    mde.metadata_compress(r0, argv[2]);
+             // compress quality scores	
+            qse.qualityscore_compress(r0, argv[2]);
       }
       else 
 	    break;
