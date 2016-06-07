@@ -22,6 +22,7 @@ AutoIncrementingFieldEncoder::decode_metadata(void)
 }
 
 
+
 void 
 AutoIncrementingFieldEncoder::encode_metadata(void)
 {
@@ -33,10 +34,10 @@ AutoIncrementingFieldEncoder::encode_metadata(void)
 }
 
 
-void 
+bool
 AutoIncrementingFieldEncoder::encode(std::string s)
 {
-    
+    return true;
 }
 
 

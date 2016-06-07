@@ -28,7 +28,7 @@ class NumericFieldEncoder : public MetadataFieldEncoder {
         void decode_metadata(void);
         void encode_metadata(void);
         char* decode(char *);
-        void encode(std::string);
+        bool encode(std::string);
         uint32_t get_width(void) { return width; }
 };
 

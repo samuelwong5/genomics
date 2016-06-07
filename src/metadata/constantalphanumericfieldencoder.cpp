@@ -37,10 +37,10 @@ ConstantAlphanumericFieldEncoder::encode_metadata(void)
 }
 
 
-void 
+bool 
 ConstantAlphanumericFieldEncoder::encode(std::string s)
 {
-
+    return s == value;
 }
 
 

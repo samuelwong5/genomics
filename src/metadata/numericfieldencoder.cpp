@@ -36,7 +36,7 @@ NumericFieldEncoder::encode_metadata(void)
 }
 
 
-void 
+bool 
 NumericFieldEncoder::encode(std::string s)
 {
     int val = atoi(s.c_str());
@@ -47,8 +47,11 @@ NumericFieldEncoder::encode(std::string s)
     }
     else
     {
+        if (EncodeUtil::ceil_log(val, 2) > width)
+            return false;
         EncodeUtil::bb_entry(val, width, encoded);
     }
+    return true;
 }
 
 

@@ -80,9 +80,6 @@ void compressSeq(std::vector<read_t> &reads, index_t *index, ival_t *ival1, ival
       k++;
     }
   }
-  for (int i = 0; i < 5; i++)
-      printf("%u ", pos[i]);
-  
 
   const char *suff[] = {".pos", ".len", ".sym", ".cnt", ".orn"};
   char f_name[128];
@@ -90,7 +87,6 @@ void compressSeq(std::vector<read_t> &reads, index_t *index, ival_t *ival1, ival
     sprintf(f_name, "%s%s", f_prefix, suff[i]);
     openFile(&fp[i], f_name, "ab");
   }
-  printf("Tuple count: %d\n", tuple_cnt);
   writeFile(fp[0], &pos[0], tuple_cnt*sizeof(uint32_t));
   writeFile(fp[1], &len[0], tuple_cnt*sizeof(uint8_t));
   writeFile(fp[2], &sym[0], tuple_cnt*sizeof(uint8_t));
@@ -349,7 +345,6 @@ void decompressSeq(std::vector<read_t> &reads, char *ref, dcmp_fps &fps)
   uint32_t tuple_count = 0;
   for (int i = 0; i < entries; i++)
       tuple_count += cnt[i];
-  printf("tuple_count: %d\n", tuple_count);
   // read.pos
   uint32_t *pos = new uint32_t [tuple_count*sizeof(uint32_t)];
   if (!pos) {
@@ -357,7 +352,6 @@ void decompressSeq(std::vector<read_t> &reads, char *ref, dcmp_fps &fps)
     exit(1);
   }  
   readFile(fps.fp[0], pos, tuple_count *sizeof(uint32_t));
-  printf("Read pos. ");
   // read .len
   uint8_t *len = new uint8_t [tuple_count/sizeof(uint8_t)];
   if (!len) {
@@ -365,7 +359,6 @@ void decompressSeq(std::vector<read_t> &reads, char *ref, dcmp_fps &fps)
     exit(1);
   }  
   readFile(fps.fp[1], len, tuple_count);
-  printf("Read len. ");
   // read .sym
   uint8_t *sym = new uint8_t [tuple_count/sizeof(uint8_t)];
   if (!sym) {
@@ -373,7 +366,6 @@ void decompressSeq(std::vector<read_t> &reads, char *ref, dcmp_fps &fps)
     exit(1);
   }  
   readFile(fps.fp[2], sym, tuple_count);
-  printf("Read sym. ");
 
   // read orn
   uint8_t* orn = new uint8_t [entries/sizeof(uint8_t)];
@@ -382,7 +374,6 @@ void decompressSeq(std::vector<read_t> &reads, char *ref, dcmp_fps &fps)
     exit(1);
   }  
   readFile(fps.fp[4], orn, entries);
-  printf("Read everything!\n");
 
   // decompress
   uint32_t n_reads = entries;

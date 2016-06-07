@@ -32,7 +32,7 @@ class QualityScoreEncoder {
     
     uint64_t frequency[SYMBOL_SIZE];                   // Frequencies to calculate encoding
     std::shared_ptr<BitBuffer> b;                      // Buffer for file IO
-    bool freeze = false;                               // Stop updating frequency table
+    //bool freeze = false;                               // Stop updating frequency table
     uint32_t entry_len;
     
   public:

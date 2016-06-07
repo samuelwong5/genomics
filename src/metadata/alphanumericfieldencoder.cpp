@@ -16,6 +16,7 @@ AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuff
         for (std::set<std::string>::iterator it = values.begin(); it != values.end(); ++it)
         {
             map.push_back(*it);
+            std::cout << "      - " << map.size() - 1 << ": " << *it << std::endl;
         }
         mappings = w;
         width = EncodeUtil::ceil_log(mappings, 2);
@@ -86,7 +87,7 @@ AlphanumericFieldEncoder::encode_metadata(void)
 }
 
 
-void 
+bool
 AlphanumericFieldEncoder::encode(std::string s)
 {
     if (enable_map)
@@ -96,13 +97,14 @@ AlphanumericFieldEncoder::encode(std::string s)
         uint32_t key = 0;
         for (std::vector<std::string>::iterator it = map.begin(); it != map.end(); ++it)
         {
-            if (!strncmp(s.c_str(), it->c_str(), len)) 
+            if (s == *it) 
             {
                 EncodeUtil::bb_entry(key, (uint8_t) width, encoded);
                 break;
             }
             key++;
         }
+        if (key == map.size()) { return false; }
     } 
     else
     {
@@ -117,6 +119,7 @@ AlphanumericFieldEncoder::encode(std::string s)
        // }
        // buffer->write(0, pad);
     }
+    return true;
 }
 
 

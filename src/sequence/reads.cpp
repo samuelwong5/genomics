@@ -9,7 +9,7 @@ inline void setVal(uint8_t *pck, uint32_t idx, uint8_t val);
 uint64_t testEntry(FILE *fp, char *buffer, uint64_t len); 
 
 void loadReads(FILE *in_fp, std::vector<read_t> &reads, char *buffer, uint64_t size, 
-	       bool ctrl, uint64_t *bytes)
+	       bool ctrl, uint64_t *bytes, uint8_t *test)
 {
   uint64_t len = size;
   uint64_t i;
@@ -35,8 +35,6 @@ void loadReads(FILE *in_fp, std::vector<read_t> &reads, char *buffer, uint64_t s
       buffer[len++] = (char)c;
     }
     
-    // update bytes read
-    *bytes += len;
     
     // parse buffer
     uint64_t s_pos;
@@ -73,8 +71,11 @@ void loadReads(FILE *in_fp, std::vector<read_t> &reads, char *buffer, uint64_t s
       
       // get strand
       tmp.strand = buffer[i];
+      if (buffer[i] == '+')
+          *test |= 0x1;
+      if (buffer[++i] == '\n')
+          *test |= 0x2;
       while (buffer[i++] != '\n');      
-      
       // get q_score
       s_pos = i;
       s_len = 0;
@@ -87,6 +88,7 @@ void loadReads(FILE *in_fp, std::vector<read_t> &reads, char *buffer, uint64_t s
       
       reads.push_back(tmp);
     }
+    *bytes += len;
   }
 }
 

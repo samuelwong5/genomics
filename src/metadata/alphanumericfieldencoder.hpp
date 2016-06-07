@@ -31,7 +31,7 @@ class AlphanumericFieldEncoder : public MetadataFieldEncoder {
         
         void decode_metadata(void);
         void encode_metadata(void);
-        void encode(std::string);
+        bool encode(std::string);
         char* decode(char *);
         uint32_t get_width(void) { return width; }
 };

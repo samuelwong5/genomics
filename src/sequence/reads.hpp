@@ -27,7 +27,7 @@ struct read_t {
 
 // load reads
 void loadReads(FILE *in_fp, std::vector<read_t> &reads, char *buffer, uint64_t size, 
-	       bool ctrl, uint64_t *bytes);
+	       bool ctrl, uint64_t *bytes, uint8_t *test);
 
 // pack read                                    
 void pack(char *sym, uint8_t *pck, uint8_t len);

@@ -25,6 +25,7 @@ private:
     uint8_t num_fields;
     std::vector<char> sep;
     std::vector<MetadataFieldEncoder*> fields;
+    uint32_t total_entries = 0; // For decoding autoincrementfieldenc starting point
     
 public:
     void metadata_separators(std::string metadata);

@@ -7,12 +7,13 @@ QualityScoreEncoder::QualityScoreEncoder()
     b = std::shared_ptr<BitBuffer>(new BitBuffer);
 }
 
-
+static bool freeze = false;
 void
 QualityScoreEncoder::update(int c, uint64_t *freq)
 {
-    for (int i = c + 1; i < SYMBOL_SIZE; i++)
-        freq[i]++;
+    if (!freeze)
+        for (int i = c + 1; i < SYMBOL_SIZE; i++)
+            freq[i]++;
 }
 
 
@@ -24,6 +25,7 @@ QualityScoreEncoder::reset(void)
         frequency[i] = i;
 }
 
+static int prev_offset = -1;
 
 void
 QualityScoreEncoder::decode_entry(read_t& r)
@@ -44,7 +46,7 @@ QualityScoreEncoder::decode_entry(read_t& r)
              break;
           }
       }
-
+      
       if (c >= BASE_ALPHABET_SIZE)
       {
           i += c - BASE_ALPHABET_SIZE;
@@ -62,7 +64,11 @@ QualityScoreEncoder::decode_entry(read_t& r)
      
       high = low + (range*phigh)/pcount -1;
       low = low + (range*plow)/pcount;
-
+      if (c == SYMBOL_SIZE - 1)
+      {
+          std::cout << "REACHED EOF!\n";
+          break;
+      }
       for( ; ; ) {
         if ( high < ONE_HALF ) {
           // Do nothing
@@ -82,8 +88,6 @@ QualityScoreEncoder::decode_entry(read_t& r)
         value <<= 1;
         value += b->read(1);
       }
-      if (c == SYMBOL_SIZE - 1)
-          break;
     }
     *qs = '\0';
 }
@@ -92,8 +96,10 @@ QualityScoreEncoder::decode_entry(read_t& r)
 void 
 QualityScoreEncoder::encode_symbol(uint32_t c)
 {
+    if (c == SYMBOL_SIZE - 1)
+        std::cout << "  - Done encoding quality scores.\n";
     uint32_t phigh = frequency[c+1];
-    uint32_t plow = frequency[c];
+    uint32_t plow = frequency [c];
     uint64_t range = high - low + 1;
     uint64_t pcount = frequency[SYMBOL_SIZE - 1];
     high = low + (range * phigh / pcount) - 1;
@@ -191,11 +197,19 @@ QualityScoreEncoder::QualityScoreEncoder(char *filename)
     b->read_from_file(ifn);
 }
 
+static uint32_t MAGIC_NUMBER = 0x12345678;
+
 void
 QualityScoreEncoder::qualityscore_decompress(std::vector<read_t>& reads, char *filename)
 {
     uint32_t curr_entry = 0;
     b->read_pad_back();
+    uint32_t match_magic = 0;
+    while (MAGIC_NUMBER != match_magic)
+    {
+        match_magic = b->read(32);
+    }
+    //   std::cout << "MATCHED!\n";
     uint32_t entries = b->read(32);
     entry_len = b->read(32);
     reset();
@@ -216,6 +230,7 @@ QualityScoreEncoder::qualityscore_decompress(std::vector<read_t>& reads, char *f
     // Decode
     for (uint32_t i = 0; i < entries; i++)
     {
+ //       std::cout << "Entry: " << i << std::endl;
         decode_entry(reads[curr_entry++]);
     }
 }
@@ -226,6 +241,7 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
 {
     std::cout << " [QUALITY SCORES]\n";
     b->init();
+    b->write(MAGIC_NUMBER, 32);
     int entries = reads.size();
     b->write(entries, 32);
     int entry_len = reads[0].seq_len;
@@ -235,6 +251,7 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
     // Translate into run-length symbols
     std::cout << "  - Translating symbols\n";
     std::vector<uint8_t> symbols[N_THREADS];
+    
     uint64_t frequencies[N_THREADS][SYMBOL_SIZE];
 
 #pragma omp parallel for num_threads(N_THREADS)    
@@ -247,20 +264,28 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
         translate_symbol(reads.begin() + boffset, reads.begin() + eoffset, symbols[i], frequencies[i]);
     }
 
-    // Sum frequencies and write to file
-    for (int i = 0; i < SYMBOL_SIZE; i++)
-    {
-        frequency[i] = 0;
-        for (int j = 0; j < N_THREADS; j++)
-             frequency[i] += frequencies[j][i];
-        b->write(frequency[i], 32);
-    }        
-    
+    if (!freeze) {
+        // Sum frequencies and write to file
+        for (int i = 0; i < SYMBOL_SIZE; i++)
+        {
+            frequency[i] = 0;
+            for (int j = 0; j < N_THREADS; j++)
+                frequency[i] += frequencies[j][i];
+            //b->write(frequency[i], 32);
+        }  
+        freeze = true;      
+    }
+    for (int j = 0; j < SYMBOL_SIZE; j++)
+        b->write(frequency[j], 32);
     // Arithmetic encoding for run-length symbols
     std::cout << "  - Encoding symbols\n";
+    high = MAX_VALUE;
+    low = 0;
+    pending_bits = 0;
     for (int i = 0; i < N_THREADS; i++)
         for (auto it = symbols[i].begin(); it != symbols[i].end(); it++)
             encode_symbol(*it);
+    //encode_symbol(SYMBOL_SIZE - 1);
     encode_flush();
 
     std::string ofilename(filename);
