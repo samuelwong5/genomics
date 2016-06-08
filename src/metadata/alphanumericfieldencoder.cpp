@@ -16,7 +16,7 @@ AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuff
         for (std::set<std::string>::iterator it = values.begin(); it != values.end(); ++it)
         {
             map.push_back(*it);
-            std::cout << "      - " << map.size() - 1 << ": " << *it << std::endl;
+            //std::cout << "      - " << map.size() - 1 << ": " << *it << std::endl;
         }
         mappings = w;
         width = EncodeUtil::ceil_log(mappings, 2);

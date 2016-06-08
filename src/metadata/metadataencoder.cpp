@@ -175,7 +175,7 @@ compress_parallel(std::vector<read_t>::iterator begin, std::vector<read_t>::iter
         for (int i = 0; i < num_fields; i++)
             if (!fencoders[i]->encode(v[i])) {
                 fail = true;
-                printf("Error at %dth encoder\n - Metadata:%s\n", i, metadata.c_str());
+                //printf("Error at %dth encoder\n - Metadata:%s\n", i, metadata.c_str());
             }
         if (fail) {
             break;
