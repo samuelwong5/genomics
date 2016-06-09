@@ -1,6 +1,11 @@
 #include "qualityscoreencoder.hpp"
 
 
+static std::vector<bb_entry_t> bb0;
+static std::vector<bb_entry_t> bb1;
+
+
+
 QualityScoreEncoder::QualityScoreEncoder()
 {
     reset();
@@ -24,8 +29,6 @@ QualityScoreEncoder::reset(void)
     for (int i = 0; i < SYMBOL_SIZE; i++)
         frequency[i] = i;
 }
-
-static int prev_offset = -1;
 
 void
 QualityScoreEncoder::decode_entry(read_t& r)
@@ -235,10 +238,12 @@ QualityScoreEncoder::qualityscore_decompress(std::vector<read_t>& reads, char *f
     }
 }
 
+static std::shared_ptr<std::vector<bb_entry_t> > bbb;
 
 void
 QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* filename)
 {
+    
     std::cout << " [QUALITY SCORES]\n";
     b->init();
     b->write(MAGIC_NUMBER, 32);
@@ -265,6 +270,7 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
     }
 
     if (!freeze) {
+        std::cout << "  - Calculating frequency distribution\n";
         // Sum frequencies and write to file
         for (int i = 0; i < SYMBOL_SIZE; i++)
         {
@@ -291,5 +297,5 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
     std::string ofilename(filename);
     ofilename.append(".qs");
     b->write_to_file(ofilename);
-    std::cout << "  - Compressed size: " << b->size() << " bytes --> " << ofilename << "\n";
+    //std::cout << "  - Compressed size: " << b->size() << " bytes --> " << ofilename << "\n";
 }
