@@ -14,13 +14,17 @@ MetaDataEncoder::metadata_separators(std::string metadata)
 
 
 void
-MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, int entries)
+MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, uint32_t entries)
 {   
     std::string metadata(reads[0].meta_data);
     metadata.erase(0,1);
     metadata_separators(metadata);    // List of separators in order  
-    int num_fields = sep.size() + 1;
-    std::cout << "  - Analyzing Fields: [" << num_fields << "]\n";
+    std::vector<std::string> parts;
+    parts.clear();
+    EncodeUtil::split(metadata, parts);
+    num_fields = parts.size();
+    num_sep = sep.size();
+    std::cout << "  - Analyzing Fields: [" << unsigned(num_fields) << "]\n";
     
     // Initialize set of values for each field 
     // to count the number of total values
@@ -40,13 +44,14 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, int entries)
         metadata = std::string(it->meta_data);
         metadata.erase(0,1);
         EncodeUtil::split(metadata, v);
-        for (int i = 0; i < num_fields; i++)
-            values[i].insert(v[i]);     
+        for (int i = 0; i < num_fields; i++) {
+            values[i].insert(v[i]);      
+        }
     }
-    
+
     for (auto it = values.begin(); it != values.end(); it++)
     {
-        std::string str("1");
+
         if (it->size() == 1)
         {
             std::cout << "    - Constant Alphanumeric: " << *it->begin() << std::endl;
@@ -54,21 +59,23 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, int entries)
         }
         else if (it->size() > 0)
         {
-            int max = 0;
-            int min = 1000000000;
+            uint32_t max = 0;
+            uint32_t min = 1000000000;
             bool numeric = true;
             for (auto sit = it->begin(); sit != it->end(); sit++)
             {
                 
                 if (!numeric || !EncodeUtil::is_numeric(*sit))
                 {
+                    if (numeric && !EncodeUtil::is_numeric(*sit))
+                        max = 0;
                     numeric = false;
-                    max = EncodeUtil::ceil_log(max, 10);
-                    max = max > (int) sit->length() ? max : sit->length();
+                    //max = EncodeUtil::ceil_log(max, 10);
+                    max = max > sit->length() ? max : sit->length();
                 }
                 else
                 { 
-                    int val = atoi(sit->c_str());
+                    uint32_t val = atoi(sit->c_str());
                     max = max > val ? max : val;                     
                     min = min < val ? min : val;
                 }
@@ -85,19 +92,21 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, int entries)
                 {
                     std::cout << "    - Numeric  (Values: " << it->size() << " |  Max: " << max << ")\n";
                     // Non-incremental
-                    fields.push_back(new NumericFieldEncoder(b, EncodeUtil::ceil_log(max + 1, 2), false));
+                    uint32_t wd = EncodeUtil::ceil_log(max + 1, 2);
+                    fields.push_back(new NumericFieldEncoder(b, wd, false));
                 }
             }        
             else 
             {
                 std::cout << "    - Alphanumeric  (Values: " << it->size() << ")\n";
                 int bits_per_char = 8;
-                if (true || it->size() * 10 < entries) // Enable mapping
+                if (it->size() * 100 < entries) // Enable mapping
                 {
                     fields.push_back(new AlphanumericFieldEncoder(b, it->size(), true, *it));
                 }
                 else 
                 {
+                    printf("Max: %lu\n", max);
                     fields.push_back(new AlphanumericFieldEncoder(b, max * bits_per_char, false, *it));
                 }
             }
@@ -139,10 +148,10 @@ void
 MetaDataEncoder::decode_separators(void)
 {
     const char* smap = " .:-#";
-    // Number of separators = num_fields - 1
+    // Number of separators = num_sep
     sep.clear();
     sep.push_back('@');
-    for (int i = 1; i < num_fields; i++) 
+    for (int i = 0; i < num_sep; i++) 
         sep.push_back(smap[b->read(3)]);
 }
 
@@ -236,12 +245,13 @@ MetaDataEncoder::decode_entry(read_t& read)
 {
     char *md = read.meta_data;
     for (uint8_t i = 0; i < num_fields; i++)
-    {
+    { 
         *(md++) = sep[i];
         md = fields[i]->decode(md);   
     }
+    if (num_sep == num_fields)
+        *(md++) = sep[num_sep - 1];
     *md = '\0';
-    //printf("[%d] %s\n", strlen(read.meta_data), read.meta_data);
 }
 
 
@@ -261,15 +271,30 @@ MetaDataEncoder::metadata_decompress(std::vector<read_t>& reads, char *filename)
     // Decode fields and separators
     num_fields = b->read(8);
     uint32_t entries = b->read(24);
+    //std::cout << "  - Entries: [" << entries << "]\n";
+    num_sep = b->read(8);
+    //std::cout << "  - Fields: [" << unsigned(num_fields) << "]\n  - Delimiters: [" << unsigned(num_sep) << "]\n";
     reads.resize(entries);
+    //std::cout << "  - Decoding fields\n";
     decode_fields();
-     total_entries += entries;
+    total_entries += entries;
+    //std::cout << "  - Decoding separators: ";
     decode_separators();
+    //for (int i = 0; i < sep.size(); i++)
+    //    std::cout << sep[i];
+   // std::cout << "\n";
+    //std::cout << "  - Decoding entries\n";
+    //std::cout << "Reads size: " << reads.size() << std::endl;
     for (uint32_t i = 0; i < entries; i++)
     {
+        //printf("[%lu/%lu] %s\n", i, entries, reads[curr_entry-1].meta_data);
         decode_entry(reads[curr_entry++]);
+        //if (i % 1000 == 0)
+        //    printf("[%lu/%lu] %s\n", i, entries, reads[curr_entry-1].meta_data);
     }
+   // std::cout << "Done decode." << std::endl;
     b->read_pad();
+   // std::cout << "Padded." << std::endl;
     return b->read_is_end();
 }
 
@@ -281,7 +306,7 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
     // Init
     b->init();
     std::cout << " [SEQUENCE ID/METADATA]\n";
-    int entries = reads.size();
+    uint32_t entries = reads.size();
     
     bool success = false;
     while (!success)
@@ -293,14 +318,18 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
         }
  
         // Compress sequence identifier fields metadata
-        b->write(fields.size(), 8);         // Number of fields
+        b->write(num_fields, 8);         // Number of fields
         b->write(entries, 24);              // Number of entries
+        b->write(num_sep, 8);
+        std::cout << "  - Encoding field headers\n";
         for (auto it = fields.begin(); it != fields.end(); it++)
             (*it)->encode_metadata();
 
+        std::cout << "  - Encoding separators\n";
         // Compress separators
         encode_separators();  
 
+        std::cout << "  - Compressing metadata entries\n";
         // Compress metadata entries
         std::shared_ptr<std::vector<bb_entry_t> > bb_entries[N_THREADS];
 
@@ -313,7 +342,7 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
             int eoffset = entries * (i+1) / N_THREADS;
 
             success &= compress_parallel(reads.begin() + boffset, reads.begin() + eoffset, fields, bb_entries[i]);
-        //std::cout << "Compressed entries " << boffset << " to " << eoffset << "\n";
+            //std::cout << "Compressed entries " << boffset << " to " << eoffset << "\n";
         }
         if (success)
             for (int i = 0; i < N_THREADS; i++)

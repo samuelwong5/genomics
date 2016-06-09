@@ -7,6 +7,7 @@
 #include "../bitbuffer/bitbuffer.hpp"
 #include "../sequence/reads.hpp"
 
+
 class QualityScoreEncoder {
   private:
     // Arithmetic encoding constants
@@ -32,7 +33,7 @@ class QualityScoreEncoder {
     
     uint64_t frequency[SYMBOL_SIZE];                   // Frequencies to calculate encoding
     std::shared_ptr<BitBuffer> b;                      // Buffer for file IO
-    //bool freeze = false;                               // Stop updating frequency table
+    bool freeze = false;                               // Stop updating frequency table
     uint32_t entry_len;
     
   public:
@@ -41,8 +42,8 @@ class QualityScoreEncoder {
     void reset(void);
     void qualityscore_compress(std::vector<read_t>&, char*);
     void qualityscore_decompress(std::vector<read_t>&, char*);
-    static inline void update(int, uint64_t*);
-    static void translate_symbol(std::vector<read_t>::iterator, std::vector<read_t>::iterator, std::vector<uint8_t>&, uint64_t*);
+    inline void update(int, uint64_t*);
+    void translate_symbol(std::vector<read_t>::iterator, std::vector<read_t>::iterator, std::vector<uint8_t>&, uint64_t*);
     void encode_symbol(uint32_t);
     void encode_flush(void);
     void decode_entry(read_t&);

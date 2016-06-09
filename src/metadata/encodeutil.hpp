@@ -12,7 +12,7 @@
 class EncodeUtil {
   public:
     static void bb_entry(uint32_t, uint8_t, std::shared_ptr<std::vector<bb_entry_t> >&);
-    static int ceil_log(int, int);
+    static uint32_t ceil_log(uint32_t, uint32_t);
     static bool is_numeric(const std::string&);
     static void split(std::string&, std::vector<std::string>&);
 };

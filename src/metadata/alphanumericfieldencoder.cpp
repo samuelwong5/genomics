@@ -32,11 +32,12 @@ void
 AlphanumericFieldEncoder::decode_metadata(void)
 {
     int k = buffer->read(2);
-    if (k & 2)
+    if (k & 0x2)
     {
         enable_map = true;
+    } else {
+        enable_map = false;
     }
-    
        
     // Read mapped values
     if (enable_map)
@@ -58,6 +59,11 @@ AlphanumericFieldEncoder::decode_metadata(void)
     {
         width = buffer->read(12);
     }
+    std::cout << "  - Alphanumeric ";
+    if (enable_map) 
+        std::cout << "[Mappings: " << mappings << "]\n";
+    else
+        std::cout << "[Max characters: " << width << "]\n";
 }
 
 
@@ -66,7 +72,7 @@ AlphanumericFieldEncoder::encode_metadata(void)
 {
     // Field type = 01
     buffer->write(1,2);
-
+    
     // Enable map flag
     if (enable_map)
     {
@@ -107,16 +113,20 @@ AlphanumericFieldEncoder::encode(std::string s)
     } 
     else
     {
-        // Write each character to bitbuffer using 8 bits
-        //int pad = width - s.length() * 8;
-        //for (std::string::iterator it = s.begin(); it != s.end(); ++it)
-        //    buffer->write(*it, 8);
-        //while (pad >= 32) 
-       // {
-       //     buffer->write(0, 32);
-       //     pad -= 32;
-       // }
-       // buffer->write(0, pad);
+        //Write each character to bitbuffer using 8 bits
+        int pad = width - s.length() * 8;
+        if (pad < 0) {
+            std::cout << "Writing: " << s << " with " << s.length() << " characters but only allowing " << width / 8 << " characters!\n";
+            return false;
+        }
+        for (std::string::iterator it = s.begin(); it != s.end(); ++it)
+            EncodeUtil::bb_entry(*it, 8, encoded);
+        while (pad >= 32) 
+        {
+            EncodeUtil::bb_entry(0, 32, encoded);           
+            pad -= 32;
+        }
+        EncodeUtil::bb_entry(0, pad, encoded);
     }
     return true;
 }
@@ -131,26 +141,23 @@ AlphanumericFieldEncoder::decode(char *md)
         std::string value = map[key];
         for (uint32_t i = 0; i < value.length(); i++)
             *(md++) = value[i];
-
     } 
-    else // TODO: Test integrity of non-mapped values
+    else 
     {
-        /*int size = width;
-        while (size > 0) 
+        int num_chars = width / 8;
+        while (num_chars--) 
         {
             char c = buffer->read(8);
-            size -= 8;
+            //std::cout << c;
             if (!c) { break; }
-            ss << c;            
+            *(md++) = c;          
         }
         
         // Offset bitbuffer read pointer
-        while (size >= 32) 
+        while (num_chars-- > 0) 
         {
-            buffer->read(32);
-            size -= 32;
+            buffer->read(8);
         }
-        buffer->read(size);*/
     }
     return md;
 }

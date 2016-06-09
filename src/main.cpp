@@ -318,6 +318,7 @@ compress(char** argv)
     exit(1);
   }
   
+
   char syscmd[120];
   char filename[120];
   
@@ -327,21 +328,25 @@ compress(char** argv)
       sprintf(syscmd, "pbzip2 %s%s", argv[2], FILE_EXT[i]);
       system(syscmd);
   }
-
   gettimeofday(&tv1, NULL);
   printf("[%.2f s]\n", (double) (tv1.tv_usec - tv2.tv_usec) / 1000000 + (double) (tv1.tv_sec - tv2.tv_sec));
-  if (munmap(sai, sa_map_size) == -1) {
-    printf("Error: unable to unmap file!\n");
-    exit(1);
-  }
-  
+
+
   printf(" - Archiving...              ");
   strncpy(filename, argv[2], strlen(argv[2])-5); // removing '.fastq'
-  sprintf(syscmd, "tar cf %stemp %s.* --absolute-names", filename, argv[2]);
+  sprintf(syscmd, "tar cf %stemp ", filename);
+  for (int i = 0; i < FILE_EXT_COUNT; i++)
+  {
+      char fn[120];
+      sprintf(fn, "%s%s.bz2 ", argv[2], FILE_EXT[i]);
+      strcat(syscmd, fn);
+  }
+  strcat(syscmd, "--absolute-names");
   system(syscmd);
   gettimeofday(&tv2, NULL);
   printf("[%.2f s]\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec));
   
+
   printf(" - Cleaning up...\n");
   for (int i = 0; i < FILE_EXT_COUNT; i++)
   {
@@ -349,13 +354,15 @@ compress(char** argv)
       system(syscmd);
   }
 
+
   sprintf(syscmd, "mv %stemp %s.tar.bz2", filename, argv[2]);
   system(syscmd);
+
 
   printf("COMPRESSION FINISHED         ");
   gettimeofday(&tv1, NULL);
   printf("[%.2f s]\n", (double) (tv1.tv_usec - tv2.tv_usec) / 1000000 + (double) (tv1.tv_sec - tv2.tv_sec));
- 
+
   delete[] idx;
   delete[] in_buff;
 }

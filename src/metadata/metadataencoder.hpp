@@ -23,6 +23,7 @@ class MetaDataEncoder {
 private:
     const std::shared_ptr<BitBuffer> b;
     uint8_t num_fields;
+    uint8_t num_sep;
     std::vector<char> sep;
     std::vector<MetadataFieldEncoder*> fields;
     uint32_t total_entries = 0; // For decoding autoincrementfieldenc starting point
@@ -30,7 +31,7 @@ private:
 public:
     void metadata_separators(std::string metadata);
     static void split(std::string& str, std::vector<std::string>& parts);
-    void metadata_analyze(std::vector<read_t>&, int);
+    void metadata_analyze(std::vector<read_t>&, uint32_t);
     void encode_separators(void);
     void decode_separators(void);
     MetaDataEncoder() : b(std::shared_ptr<BitBuffer>(new BitBuffer)) {  }

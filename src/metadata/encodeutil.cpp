@@ -41,11 +41,12 @@ EncodeUtil::bb_entry(uint32_t val, uint8_t len, std::shared_ptr<std::vector<bb_e
  *  Returns:
  *    int       - result of ceil(log(value)/log(j))
  */
-int 
-EncodeUtil::ceil_log(int value, int base)
-{
-    int power = 1;
-    int curr = base;
+uint32_t
+EncodeUtil::ceil_log(uint32_t value, uint32_t base)
+{ 
+
+    uint32_t power = 1;
+    uint32_t curr = base;
     while (curr <= value)
     {
         power++;

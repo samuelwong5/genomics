@@ -58,7 +58,7 @@ NumericFieldEncoder::encode(std::string s)
 char *
 NumericFieldEncoder::decode(char* md)
 {
-    int delta = (int) buffer->read(width);
+    uint32_t delta = buffer->read(width);
     if (increment)
     {  
        int curr = delta + prev;
@@ -67,7 +67,7 @@ NumericFieldEncoder::decode(char* md)
     }
     else
     {
-       return md + sprintf(md, "%d", delta);
+       return md + sprintf(md, "%lu", delta);
     }
 }
 

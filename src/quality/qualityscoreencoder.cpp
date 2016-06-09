@@ -1,18 +1,13 @@
 #include "qualityscoreencoder.hpp"
 
 
-static std::vector<bb_entry_t> bb0;
-static std::vector<bb_entry_t> bb1;
-
-
-
 QualityScoreEncoder::QualityScoreEncoder()
 {
     reset();
     b = std::shared_ptr<BitBuffer>(new BitBuffer);
 }
 
-static bool freeze = false;
+
 void
 QualityScoreEncoder::update(int c, uint64_t *freq)
 {
