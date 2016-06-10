@@ -1,7 +1,7 @@
 #include "qualityscoreencoder.hpp"
 
 
-QualityScoreEncoder::QualityScoreEncoder()
+QualityScoreEncoder::QualityScoreEncoder(void)
 {
     reset();
     b = std::shared_ptr<BitBuffer>(new BitBuffer);
@@ -195,12 +195,12 @@ QualityScoreEncoder::QualityScoreEncoder(char *filename)
     b->read_from_file(ifn);
 }
 
-static uint32_t MAGIC_NUMBER = 0x12345678;
+
 
 void
 QualityScoreEncoder::qualityscore_decompress(std::vector<read_t>& reads, char *filename)
 {
-    uint32_t curr_entry = 0;
+    //uint32_t curr_entry = 0;
     b->read_pad_back();
     uint32_t match_magic = 0;
     while (MAGIC_NUMBER != match_magic)
@@ -211,7 +211,7 @@ QualityScoreEncoder::qualityscore_decompress(std::vector<read_t>& reads, char *f
     uint32_t entries = b->read(32);
     entry_len = b->read(32);
     reset();
-        
+    
     if (reads.size() < entries)
         reads.resize(entries);
         
@@ -220,20 +220,77 @@ QualityScoreEncoder::qualityscore_decompress(std::vector<read_t>& reads, char *f
     {
         frequency[i] = b->read(32);            
     }    
-    value = b->read(VALUE_BITS);
+
+    uint32_t num_subbatch = b->read(32);
+    uint32_t subbatch_entries[num_subbatch+1];
+    subbatch_entries[0] = 0;
+    for (uint32_t i = 0; i < num_subbatch; i++)
+        subbatch_entries[i+1] = b->read(32);
+
+    for (uint32_t i = 0; i < num_subbatch; i++)
+    {
+        b->read_pad_back();
+        uint32_t match_magic = 0;
+        while (MAGIC_NUMBER != match_magic)
+        {
+            match_magic = b->read(32);
+        }
+        value = b->read(VALUE_BITS);
+        pending_bits = 0;
+        high = MAX_VALUE;
+        low = 0;
+        for (uint32_t j = subbatch_entries[i]; j < subbatch_entries[i+1]; j++)
+        {
+            decode_entry(reads[j]);
+        }
+    }    
+    
+    /*value = b->read(VALUE_BITS);
     pending_bits = 0;
     high = MAX_VALUE;
     low = 0;
-        
+    
     // Decode
     for (uint32_t i = 0; i < entries; i++)
     {
  //       std::cout << "Entry: " << i << std::endl;
         decode_entry(reads[curr_entry++]);
-    }
+    }*/
 }
 
-static std::shared_ptr<std::vector<bb_entry_t> > bbb;
+
+QualityScoreEncoder::QualityScoreEncoder(uint64_t* frqs)
+{
+    reset();
+    b = std::shared_ptr<BitBuffer>(new BitBuffer);
+    for (int i = 0; i < SYMBOL_SIZE; i++)
+        frequency[i] = frqs[i];
+}
+
+
+std::shared_ptr<BitBuffer>
+QualityScoreEncoder::get_bb(void)
+{
+    return b;
+}
+
+void
+QualityScoreEncoder::encode_magic(void)
+{
+    b->write(MAGIC_NUMBER, 32);
+}
+
+std::shared_ptr<BitBuffer>
+QualityScoreEncoder::compress_parallel(std::vector<uint8_t>& symbols)
+{
+    QualityScoreEncoder qse(frequency);
+    qse.encode_magic();
+    for (auto it = symbols.begin(); it != symbols.end(); it++)
+        qse.encode_symbol(*it);
+    qse.encode_flush();
+    return qse.get_bb();
+}
+
 
 void
 QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* filename)
@@ -283,14 +340,32 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
     high = MAX_VALUE;
     low = 0;
     pending_bits = 0;
+
+    std::shared_ptr<BitBuffer> bbs[N_THREADS];
+#pragma omp parallel for num_threads(N_THREADS)    
+    for (int i = 0; i < N_THREADS; i++)
+    {
+        bbs[i] = compress_parallel(symbols[i]);
+    }   
+
+/*
     for (int i = 0; i < N_THREADS; i++)
         for (auto it = symbols[i].begin(); it != symbols[i].end(); it++)
             encode_symbol(*it);
     //encode_symbol(SYMBOL_SIZE - 1);
-    encode_flush();
+    encode_flush();*/
+
+    b->write(N_THREADS, 32);
+    for (int i = 0; i < N_THREADS; i++)
+        b->write(entries * (i+1) / N_THREADS, 32);
 
     std::string ofilename(filename);
     ofilename.append(".qs");
     b->write_to_file(ofilename);
+
+
+    for (int i = 0; i < N_THREADS; i++)
+        bbs[i]->write_to_file(ofilename);
     //std::cout << "  - Compressed size: " << b->size() << " bytes --> " << ofilename << "\n";
 }
+

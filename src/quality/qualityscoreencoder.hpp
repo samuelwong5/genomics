@@ -31,13 +31,14 @@ class QualityScoreEncoder {
     static const int MAX_CONSEC_ZERO     = 60;
     static const int SYMBOL_SIZE         = BASE_ALPHABET_SIZE + MAX_CONSEC_ZERO + 1; // Last is EOF
     
+    static const uint32_t MAGIC_NUMBER = 0x12345678;
     uint64_t frequency[SYMBOL_SIZE];                   // Frequencies to calculate encoding
     std::shared_ptr<BitBuffer> b;                      // Buffer for file IO
     bool freeze = false;                               // Stop updating frequency table
     uint32_t entry_len;
     
   public:
-    QualityScoreEncoder();
+    QualityScoreEncoder(void);
     QualityScoreEncoder(char *);
     void reset(void);
     void qualityscore_compress(std::vector<read_t>&, char*);
@@ -48,4 +49,8 @@ class QualityScoreEncoder {
     void encode_flush(void);
     void decode_entry(read_t&);
 
+    QualityScoreEncoder(uint64_t*);
+    std::shared_ptr<BitBuffer> get_bb(void);
+    std::shared_ptr<BitBuffer> compress_parallel(std::vector<uint8_t>&);
+    void encode_magic(void);
 };

@@ -319,8 +319,8 @@ compress(char** argv)
   }
   
 
-  char syscmd[120];
-  char filename[120];
+  char syscmd[3000];
+  char filename[500];
   
   printf(" - Compressing bzip...       ");
   for (int i = 0; i < FILE_EXT_COUNT; i++)
@@ -337,7 +337,7 @@ compress(char** argv)
   sprintf(syscmd, "tar cf %stemp ", filename);
   for (int i = 0; i < FILE_EXT_COUNT; i++)
   {
-      char fn[120];
+      char fn[500];
       sprintf(fn, "%s%s.bz2 ", argv[2], FILE_EXT[i]);
       strcat(syscmd, fn);
   }
