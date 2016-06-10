@@ -212,8 +212,8 @@ QualityScoreEncoder::qualityscore_decompress(std::vector<read_t>& reads, char *f
     entry_len = b->read(32);
     reset();
     
-    if (reads.size() < entries)
-        reads.resize(entries);
+    //if (reads.size() < entries)
+    //    reads.resize(entries);
         
     // Read in frequencies
     for (int i = 0; i < SYMBOL_SIZE; i++)
@@ -222,6 +222,8 @@ QualityScoreEncoder::qualityscore_decompress(std::vector<read_t>& reads, char *f
     }    
 
     uint32_t num_subbatch = b->read(32);
+    //printf("\n-->Entries: %u -- Len: %u -- frequency[20]: %u -- num_subbatch: %u\n", entries, entry_len, frequency[20], num_subbatch);
+
     uint32_t subbatch_entries[num_subbatch+1];
     subbatch_entries[0] = 0;
     for (uint32_t i = 0; i < num_subbatch; i++)

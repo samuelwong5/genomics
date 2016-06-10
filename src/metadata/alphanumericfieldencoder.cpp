@@ -59,11 +59,11 @@ AlphanumericFieldEncoder::decode_metadata(void)
     {
         width = buffer->read(12);
     }
-    std::cout << "  - Alphanumeric ";
-    if (enable_map) 
-        std::cout << "[Mappings: " << mappings << "]\n";
-    else
-        std::cout << "[Max characters: " << width << "]\n";
+    //std::cout << "  - Alphanumeric ";
+    //if (enable_map) 
+    //    std::cout << "[Mappings: " << mappings << "]\n";
+    //else
+    //    std::cout << "[Max characters: " << width << "]\n";
 }
 
 
@@ -83,6 +83,7 @@ AlphanumericFieldEncoder::encode_metadata(void)
             for (std::string::iterator mit = it->begin(); mit != it->end(); ++mit)
                 buffer->write(*mit, 8);
             buffer->write(0, 8);
+            //std::cout << "  Mapping " << i++ << ": " << *it << std::endl;
         }
     }
     else

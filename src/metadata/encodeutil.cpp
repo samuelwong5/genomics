@@ -1,23 +1,26 @@
 #include "encodeutil.hpp"
 
+
 void
 EncodeUtil::split(std::string& str, std::vector<std::string>& parts) {
-  size_t start, end = 0;
-  static std::string delim = (" #.-:");
-  while (end < str.size()) {
-    start = end;
-    while (start < str.size() && (delim.find(str[start]) != std::string::npos)) {
-      start++;
+    size_t start = 0, end = 0;
+  
+    // Delimiter characters
+    static std::string delim = (" #.-:");
+ 
+    while (start < str.size()) {
+        end = start;
+        while (end < str.size() && (delim.find(str[end]) == std::string::npos))
+            end++;
+        parts.push_back(std::string(str, start, end-start));
+        start = end + 1;
     }
-    end = start;
-    while (end < str.size() && (delim.find(str[end]) == std::string::npos)) {
-      end++;
-    }
-    if (end-start != 0) {
-      parts.push_back(std::string(str, start, end-start));
-    }
-  }
+  
+    // Edge case: empty value for last field
+    if (start == str.size())
+        parts.push_back("");
 }
+
 
 void
 EncodeUtil::bb_entry(uint32_t val, uint8_t len, std::shared_ptr<std::vector<bb_entry_t> >& entries)
@@ -71,7 +74,7 @@ EncodeUtil::ceil_log(uint32_t value, uint32_t base)
 bool 
 EncodeUtil::is_numeric(const std::string & s)
 {
-   if (s.empty() || ((!isdigit(s[0])) && (s[0] != '-') && (s[0] != '+'))) return false ;
+   if (s.empty() || ((!isdigit(s[0])) && (s[0] != '-') && (s[0] != '+'))) return false;
 
    char *p ;
    strtol(s.c_str(), &p, 10) ;

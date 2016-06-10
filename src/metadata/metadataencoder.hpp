@@ -27,6 +27,7 @@ private:
     std::vector<char> sep;
     std::vector<MetadataFieldEncoder*> fields;
     uint32_t total_entries = 0; // For decoding autoincrementfieldenc starting point
+    static const uint32_t MAGIC_NUMBER = 0x18318525;
     
 public:
     void metadata_separators(std::string metadata);

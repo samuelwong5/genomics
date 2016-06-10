@@ -196,6 +196,9 @@ void
 BitBuffer::write_to_file(std::string filename)
 {
     std::ofstream fout(filename, std::ios::out | std::ios::binary | std::ios::app);
+    //if (write_offset == 0)
+    //    fout.write((char*)&buffer[0], (write_index) * 4);  
+    //else
     fout.write((char*)&buffer[0], (write_index + 1) * 4);    
 }
 

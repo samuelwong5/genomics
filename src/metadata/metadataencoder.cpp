@@ -68,7 +68,9 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, uint32_t entries)
                 if (!numeric || !EncodeUtil::is_numeric(*sit))
                 {
                     if (numeric && !EncodeUtil::is_numeric(*sit))
+                    {
                         max = 0;
+                    }
                     numeric = false;
                     //max = EncodeUtil::ceil_log(max, 10);
                     max = max > sit->length() ? max : sit->length();
@@ -106,7 +108,7 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, uint32_t entries)
                 }
                 else 
                 {
-                    printf("Max: %lu\n", max);
+                    printf("Max: %u\n", max);
                     fields.push_back(new AlphanumericFieldEncoder(b, max * bits_per_char, false, *it));
                 }
             }
@@ -266,12 +268,14 @@ bool
 MetaDataEncoder::metadata_decompress(std::vector<read_t>& reads, char *filename)
 {
     //std::cout << " [SEQUENCE ID/METADATA]\n";
-    
+    uint32_t magic = 0;
+    while (magic != MAGIC_NUMBER)
+        magic = b->read(32);
     uint32_t curr_entry = 0;
     // Decode fields and separators
     num_fields = b->read(8);
     uint32_t entries = b->read(24);
-    //std::cout << "  - Entries: [" << entries << "]\n";
+    //std::cout << "\n  - Entries: [" << entries << "]\n";
     num_sep = b->read(8);
     //std::cout << "  - Fields: [" << unsigned(num_fields) << "]\n  - Delimiters: [" << unsigned(num_sep) << "]\n";
     reads.resize(entries);
@@ -316,6 +320,8 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
         {
             metadata_analyze(reads, entries);
         }
+
+        b->write(MAGIC_NUMBER, 32);
  
         // Compress sequence identifier fields metadata
         b->write(num_fields, 8);         // Number of fields

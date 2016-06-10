@@ -92,29 +92,30 @@ decompress(char *filename, char * fmt)
   std::thread thr;
   uint32_t reads = 0;
   gettimeofday(&tv1, NULL);
-  while (true) 
+  bool is_end = false;
+  while (!is_end) 
   {
       if (batch_number % 2 == 0)
       {   
           thr = std::thread(writeReads, std::ref(r1), std::ref(of), str_flags);
-          printf("\r  - Decompressing batch %d [METADATA]", batch_number);
-          mde.metadata_decompress(r0, filename);
+          printf("\r  - Decompressing batch %d [METADATA]", batch_number); fflush(stdout);
+          is_end = mde.metadata_decompress(r0, filename);
           if (r0.size() == 0) break;
-          printf("\r  - Decompressing batch %d [SEQUENCE]", batch_number);
+          printf("\r  - Decompressing batch %d [SEQUENCE]", batch_number); fflush(stdout);
           decompressSeq(r0, dfps.ref, dfps);
-          printf("\r  - Decompressing batch %d [Q. SCORE]", batch_number);
+          printf("\r  - Decompressing batch %d [Q. SCORE]", batch_number); fflush(stdout);
           qse.qualityscore_decompress(r0, filename);   
           reads += r0.size();
       } 
       else
       {
           thr = std::thread(writeReads, std::ref(r0), std::ref(of), str_flags);
-          printf("\r  - Decompressing batch %d [METADATA]", batch_number);
-          mde.metadata_decompress(r1, filename);
+          printf("\r  - Decompressing batch %d [METADATA]", batch_number); fflush(stdout);
+          is_end = mde.metadata_decompress(r1, filename);
           if (r1.size() == 0) break;
-          printf("\r  - Decompressing batch %d [SEQUENCE]", batch_number);
+          printf("\r  - Decompressing batch %d [SEQUENCE]", batch_number); fflush(stdout);
           decompressSeq(r1, dfps.ref, dfps);
-          printf("\r  - Decompressing batch %d [Q. SCORE]", batch_number);
+          printf("\r  - Decompressing batch %d [Q. SCORE]", batch_number); fflush(stdout);
           qse.qualityscore_decompress(r1, filename);   
           reads += r1.size();
       }
@@ -122,6 +123,11 @@ decompress(char *filename, char * fmt)
       batch_number++;
       thr.join();
   }
+
+  if (batch_number % 2 == 0)
+      writeReads(r1, of, str_flags);
+  else
+      writeReads(r0, of, str_flags);
 
   // Cleanup
   if (thr.joinable())
