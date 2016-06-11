@@ -12,6 +12,87 @@ MetaDataEncoder::metadata_separators(std::string metadata)
     }
 }
 
+static void
+analyze_parallel(std::vector<read_t>::iterator begin, std::vector<read_t>::iterator end, MetadataAnalysis *ma, uint32_t fields, uint32_t entries)
+{  
+    bool constant[fields];
+    bool numeric[fields];
+    uint32_t max[fields];
+    uint32_t min[fields];
+    std::string strvals[fields];
+
+    std::string metadata((begin++)->meta_data);
+    
+    {
+        std::vector<std::string> v;
+        metadata.erase(0, 1);
+        EncodeUtil::split(metadata, v);
+        for (uint32_t i = 0; i < fields; i++)
+        {
+            constant[i] = true;
+            numeric[i] = EncodeUtil::is_numeric(v[i]);
+            if (numeric[i])
+            {
+                max[i] = atoi(v[i].c_str());
+                min[i] = max[i];
+            } else { max[i] = v[i].length(); }
+            strvals[i] = v[i];
+        }
+    }
+
+    for (auto it = begin; it != end; it++)
+    {
+        std::vector<std::string> v;
+        metadata = std::string(it->meta_data);
+        metadata.erase(0, 1);
+        EncodeUtil::split(metadata, v);
+        for (uint32_t i = 0; i < fields; i++)
+        {
+            if (constant[i] && strvals[i] != v[i])
+            {
+                // No longer constant alphanumeric;
+                constant[i] = false;
+            } 
+
+            if (!constant[i])
+            {
+                // Prev values not numeric OR curr value not numeric
+                if (!numeric[i] || !EncodeUtil::is_numeric(v[i]))
+                {  
+                    // Curr value not numeric
+                    if (numeric[i] && !EncodeUtil::is_numeric(v[i]))
+                        max[i] = EncodeUtil::ceil_log(max[i], 10);
+                    numeric[i] = false;
+                    max[i] = max[i] > v[i].length() ? max[i] : v[i].length();
+                }
+                else
+                {
+                    uint32_t val = atoi(v[i].c_str());
+                    max[i] = max[i] > val ? max[i] : val;
+                    min[i] = min[i] < val ? min[i] : val;
+                }
+            }
+
+        }
+    }
+
+    for (uint32_t i = 0; i < fields; i++)
+    {
+        if (constant[i])
+        {
+            ma[i].type = MetadataFieldType::CONSTANT_ALPHANUMERIC;
+            ma[i].val = strvals[i]; 
+        }
+        else if (numeric[i] && (max[i] - min[i] + 1 == entries))
+            ma[i].type = MetadataFieldType::AUTOINCREMENTING;
+        else if (numeric[i])
+            ma[i].type = MetadataFieldType::NUMERIC;
+        else
+            ma[i].type = MetadataFieldType::ALPHANUMERIC;
+        ma[i].width = max[i];
+    }
+}
+
 
 void
 MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, uint32_t entries)
@@ -26,91 +107,92 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, uint32_t entries)
     num_sep = sep.size();
     std::cout << "  - Analyzing Fields: [" << unsigned(num_fields) << "]\n";
     
-    // Initialize set of values for each field 
-    // to count the number of total values
-    std::vector<std::set<std::string> > values;
-    for (int i = 0; i < num_fields; i++)
-        values.push_back(std::set<std::string>());
+    MetadataAnalysis mas[N_THREADS][num_fields];
+    
+    const uint32_t read_size = reads.size();
+#pragma omp parallel for num_threads(N_THREADS)    
+    for (int i = 0; i < N_THREADS; i++)
     {
-        std::vector<std::string> v;
-        EncodeUtil::split(metadata, v);
-        for (int i = 0; i < num_fields; i++)
-            values[i].insert(v[i]);
+        int boffset = read_size * i / N_THREADS;
+        int eoffset = read_size * (i + 1) / N_THREADS;
+        analyze_parallel(reads.begin() + boffset, reads.begin() + eoffset, mas[i], num_fields, eoffset - boffset);
     }
 
-    for (auto it = ++reads.begin(); it != reads.end(); it++)
+    // Combine 
+    for (uint32_t j = 0; j < num_fields; j++)
     {
-        std::vector<std::string> v;
-        metadata = std::string(it->meta_data);
-        metadata.erase(0,1);
-        EncodeUtil::split(metadata, v);
-        for (int i = 0; i < num_fields; i++) {
-            values[i].insert(v[i]);      
-        }
-    }
-
-    for (auto it = values.begin(); it != values.end(); it++)
-    {
-
-        if (it->size() == 1)
+        bool constant = true;
+        std::string val = mas[0][j].val;
+        MetadataFieldType mft = AUTOINCREMENTING;
+        for (int i = 0; i < N_THREADS; i++)
         {
-            std::cout << "    - Constant Alphanumeric: " << *it->begin() << std::endl;
-            fields.push_back(new ConstantAlphanumericFieldEncoder(b, *it->begin()));
+            if (mas[i][j].type != MetadataFieldType::CONSTANT_ALPHANUMERIC || val != mas[i][j].val)
+                constant = false;
+            if (mas[i][j].type == MetadataFieldType::NUMERIC && mft == MetadataFieldType::AUTOINCREMENTING)
+                mft = MetadataFieldType::NUMERIC;
+            else if (mas[i][j].type == MetadataFieldType::ALPHANUMERIC)
+                mft = MetadataFieldType::ALPHANUMERIC;
+            else if (mas[i][j].type == MetadataFieldType::CONSTANT_ALPHANUMERIC)
+            {
+                if (!EncodeUtil::is_numeric(mas[i][j].val))
+                     mft = MetadataFieldType::ALPHANUMERIC;
+                else if (mft == MetadataFieldType::AUTOINCREMENTING)
+                     mft = MetadataFieldType::NUMERIC;
+            }
+        } 
+  
+        if (constant) 
+        {
+            std::cout << "    - Const. Alphanumeric: " << val << std::endl;
+            fields.push_back(new ConstantAlphanumericFieldEncoder(b, val));
         }
-        else if (it->size() > 0)
+        else if (mft == MetadataFieldType::AUTOINCREMENTING)
+        {
+            std::cout << "    - Auto Incrementing" << std::endl;    
+            fields.push_back(new AutoIncrementingFieldEncoder(b, 1));
+        }
+         
+        else if (mft == MetadataFieldType::NUMERIC)
         {
             uint32_t max = 0;
-            uint32_t min = 1000000000;
-            bool numeric = true;
-            for (auto sit = it->begin(); sit != it->end(); sit++)
+            for (int i = 0; i < N_THREADS; i++)
+                max = max > mas[i][j].width ? max : mas[i][j].width;
+            std::cout << "    - Numeric  (Max: " << max << ")\n";
+            uint32_t wd = EncodeUtil::ceil_log(max + 1, 2);
+            fields.push_back(new NumericFieldEncoder(b, wd, false));
+        }
+        else // ALPHANUMERIC
+        {
+            std::set<std::string> vals;
+            for (auto it = reads.begin(); it != reads.end(); it++)
             {
-                
-                if (!numeric || !EncodeUtil::is_numeric(*sit))
-                {
-                    if (numeric && !EncodeUtil::is_numeric(*sit))
-                    {
-                        max = 0;
-                    }
-                    numeric = false;
-                    //max = EncodeUtil::ceil_log(max, 10);
-                    max = max > sit->length() ? max : sit->length();
-                }
-                else
-                { 
-                    uint32_t val = atoi(sit->c_str());
-                    max = max > val ? max : val;                     
-                    min = min < val ? min : val;
-                }
+                std::vector<std::string> v;
+                std::string metadata(it->meta_data);
+                metadata.erase(0, 1);
+                EncodeUtil::split(metadata, v);
+                vals.insert(v[j]);
             }
-            if (numeric)
+
+            std::cout << "    - Alphanumeric  (Values: " << vals.size() << ")\n";
+            int bits_per_char = 8;
+            if (vals.size() * 100 < entries) // Enable mapping
             {
-                //std::cout << "Max: " << max << "  Min: " << min << "  Entries: " << entries << std::endl;
-                if (max - min + 1 == entries)
-                {
-                    std::cout << "    - Auto Incrementing" << std::endl;    
-                    fields.push_back(new AutoIncrementingFieldEncoder(b, 1));
-                }
-                else 
-                {
-                    std::cout << "    - Numeric  (Values: " << it->size() << " |  Max: " << max << ")\n";
-                    // Non-incremental
-                    uint32_t wd = EncodeUtil::ceil_log(max + 1, 2);
-                    fields.push_back(new NumericFieldEncoder(b, wd, false));
-                }
-            }        
+                fields.push_back(new AlphanumericFieldEncoder(b, vals.size(), true, vals));
+            }
             else 
             {
-                std::cout << "    - Alphanumeric  (Values: " << it->size() << ")\n";
-                int bits_per_char = 8;
-                if (it->size() * 100 < entries) // Enable mapping
+                uint32_t w = 0;
+                for (int i = 0; i < N_THREADS; i++)
                 {
-                    fields.push_back(new AlphanumericFieldEncoder(b, it->size(), true, *it));
+                    if (mas[i][j].type == MetadataFieldType::ALPHANUMERIC || mas[i][j].type == MetadataFieldType::CONSTANT_ALPHANUMERIC)
+                        w = w > mas[i][j].width ? w : mas[i][j].width;
+                    else
+                    {
+                        uint32_t wd = EncodeUtil::ceil_log(mas[i][j].width, 10);
+                        w = w > wd ? w : wd;
+                    }
                 }
-                else 
-                {
-                    printf("Max: %u\n", max);
-                    fields.push_back(new AlphanumericFieldEncoder(b, max * bits_per_char, false, *it));
-                }
+                fields.push_back(new AlphanumericFieldEncoder(b, w * bits_per_char, false, vals));
             }
         }
     }

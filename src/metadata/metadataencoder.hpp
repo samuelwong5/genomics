@@ -18,6 +18,19 @@
 #include "numericfieldencoder.hpp"
 #include "encodeutil.hpp"
 
+enum MetadataFieldType {
+    CONSTANT_ALPHANUMERIC = 0,
+    ALPHANUMERIC = 1,
+    NUMERIC = 2,
+    AUTOINCREMENTING = 3
+};
+
+struct MetadataAnalysis {
+    MetadataFieldType type;
+    uint32_t width;
+    std::string val;
+};
+
 
 class MetaDataEncoder {
 private:
