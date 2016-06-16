@@ -30,7 +30,7 @@ class QualityScoreEncoder {
     static const int BASE_CHAR_OFFSET    = 33;
     static const int MAX_CONSEC_ZERO     = 60;
     static const int SYMBOL_SIZE         = BASE_ALPHABET_SIZE + MAX_CONSEC_ZERO + 1; // Last is EOF
-    
+    //static const int HASH_END            = BASE_ALPHABET_SIZE + MAX_CONSEC_ZERO + 1;
     static const uint32_t MAGIC_NUMBER = 0x12345678;
     uint64_t frequency[SYMBOL_SIZE];                   // Frequencies to calculate encoding
     std::shared_ptr<BitBuffer> b;                      // Buffer for file IO

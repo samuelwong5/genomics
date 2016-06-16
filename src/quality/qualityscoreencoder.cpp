@@ -146,6 +146,7 @@ QualityScoreEncoder::translate_symbol(std::vector<read_t>::iterator begin, std::
     uint32_t consec = 0;
     char prev = 0;
     // Ignore last '\0'
+    //bool hash = false;
     uint32_t len = begin->seq_len;
     for (auto it = begin; it != end; it++)
     {
@@ -153,6 +154,24 @@ QualityScoreEncoder::translate_symbol(std::vector<read_t>::iterator begin, std::
         for (uint8_t i = 0; i < len; i++)
         {
             char curr = entry[i];
+            /*if (curr == '#')
+            {
+                
+                hash = true;
+                for (int j = i + 1; j < len; j++)
+                    if (entry[j] != '#')
+                    {
+                        hash = false;
+                        break;
+                    }
+                if (hash)
+                {
+                    update(HASH_END, freq);
+                    symbols.push_back(HASH_END);
+                    hash = false;
+                    break;
+                }
+            }*/
             if (prev == curr)
             {
                 consec++;
@@ -299,75 +318,92 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
 {
     
     std::cout << " [QUALITY SCORES]\n";
-    b->init();
-    b->write(MAGIC_NUMBER, 32);
+
     int entries = reads.size();
-    b->write(entries, 32);
     int entry_len = reads[0].seq_len;
-    b->write(entry_len, 32);
+    
 
+ 
+    bool calculated = false;
+    while (true)
+    {   
+        b->init();
+        b->write(MAGIC_NUMBER, 32);
+        b->write(entries, 32);
+        b->write(entry_len, 32);
+
+        // Translate into run-length symbols
+        std::cout << "  - Translating symbols\n";
+        std::vector<uint8_t> symbols[N_THREADS];
     
-    // Translate into run-length symbols
-    std::cout << "  - Translating symbols\n";
-    std::vector<uint8_t> symbols[N_THREADS];
-    
-    uint64_t frequencies[N_THREADS][SYMBOL_SIZE];
+        uint64_t frequencies[N_THREADS][SYMBOL_SIZE];
 
 #pragma omp parallel for num_threads(N_THREADS)    
-    for (int i = 0; i < N_THREADS; i++)
-    {
-        for (int j = 0; j < SYMBOL_SIZE; j++)
-            frequencies[i][j] = 0;
-        int boffset = entries * i / N_THREADS;
-        int eoffset = entries * (i+1) / N_THREADS;
-        translate_symbol(reads.begin() + boffset, reads.begin() + eoffset, symbols[i], frequencies[i]);
-    }
-
-    if (!freeze) {
-        std::cout << "  - Calculating frequency distribution\n";
-        // Sum frequencies and write to file
-        for (int i = 0; i < SYMBOL_SIZE; i++)
+        for (int i = 0; i < N_THREADS; i++)
         {
-            frequency[i] = 0;
-            for (int j = 0; j < N_THREADS; j++)
-                frequency[i] += frequencies[j][i];
-            //b->write(frequency[i], 32);
-        }  
-        freeze = true;      
-    }
-    for (int j = 0; j < SYMBOL_SIZE; j++)
-        b->write(frequency[j], 32);
-    // Arithmetic encoding for run-length symbols
-    std::cout << "  - Encoding symbols\n";
-    high = MAX_VALUE;
-    low = 0;
-    pending_bits = 0;
+            for (int j = 0; j < SYMBOL_SIZE; j++)
+                frequencies[i][j] = 0;
+            int boffset = entries * i / N_THREADS;
+            int eoffset = entries * (i+1) / N_THREADS;
+            translate_symbol(reads.begin() + boffset, reads.begin() + eoffset, symbols[i], frequencies[i]);
+        }
 
-    std::shared_ptr<BitBuffer> bbs[N_THREADS];
+        if (!freeze) {
+            std::cout << "  - Calculating frequency distribution\n";
+            // Sum frequencies and write to file
+            for (int i = 0; i < SYMBOL_SIZE; i++)
+            {
+                frequency[i] = 0;
+                for (int j = 0; j < N_THREADS; j++)
+                    frequency[i] += frequencies[j][i];
+            }  
+            freeze = true;      
+            calculated = true;
+        }
+
+        for (int j = 0; j < SYMBOL_SIZE; j++)
+            b->write(frequency[j], 32);
+
+        // Arithmetic encoding for run-length symbols
+        std::cout << "  - Encoding symbols\n";
+        high = MAX_VALUE;
+        low = 0;
+        pending_bits = 0;
+
+        std::shared_ptr<BitBuffer> bbs[N_THREADS];
+
 #pragma omp parallel for num_threads(N_THREADS)    
-    for (int i = 0; i < N_THREADS; i++)
-    {
-        bbs[i] = compress_parallel(symbols[i]);
-    }   
+        for (int i = 0; i < N_THREADS; i++)
+        {
+            bbs[i] = compress_parallel(symbols[i]);
+        }   
 
-/*
-    for (int i = 0; i < N_THREADS; i++)
-        for (auto it = symbols[i].begin(); it != symbols[i].end(); it++)
-            encode_symbol(*it);
-    //encode_symbol(SYMBOL_SIZE - 1);
-    encode_flush();*/
+        b->write(N_THREADS, 32);
+        for (int i = 0; i < N_THREADS; i++)
+            b->write(entries * (i+1) / N_THREADS, 32);
 
-    b->write(N_THREADS, 32);
-    for (int i = 0; i < N_THREADS; i++)
-        b->write(entries * (i+1) / N_THREADS, 32);
+        std::string ofilename(filename);
+        ofilename.append(".qs");
 
-    std::string ofilename(filename);
-    ofilename.append(".qs");
-    b->write_to_file(ofilename);
-
-
-    for (int i = 0; i < N_THREADS; i++)
-        bbs[i]->write_to_file(ofilename);
-    //std::cout << "  - Compressed size: " << b->size() << " bytes --> " << ofilename << "\n";
+        uint32_t output_size = b->size();
+        for (int i = 0; i < N_THREADS; i++)
+            output_size += bbs[i]->size();
+       
+        // Greedy approach - if threshold met then frequency table does not need to be recalculated
+        static uint32_t THRESHOLD = 32; // 32 bits per 10 quality score characters
+        if (calculated || output_size * 80 / entries / entry_len > THRESHOLD)
+        {
+            std::cout << "Entries: " << entries << "\nLen: " << entry_len << "\nOutput size: " << output_size << std::endl;
+            b->write_to_file(ofilename);
+            for (int i = 0; i < N_THREADS; i++)
+                bbs[i]->write_to_file(ofilename);
+            break;
+        }
+        else
+        {
+            std::cout << "Entries: " << entries << "\nLen: " << entry_len << "\nOutput size: " << output_size << std::endl;
+            freeze = false;
+        }
+    }
 }
 
