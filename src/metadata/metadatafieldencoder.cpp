@@ -5,3 +5,8 @@ MetadataFieldEncoder::MetadataFieldEncoder(const std::shared_ptr<BitBuffer>& b) 
 {
 
 }
+
+MetadataFieldEncoder::~MetadataFieldEncoder()
+{
+    
+}

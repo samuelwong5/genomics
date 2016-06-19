@@ -7,14 +7,7 @@
 
 BitBuffer::BitBuffer(void) 
 {
-    buffer = std::vector<uint32_t> (DATA_INIT_SIZE, 0);
-    write_it = buffer.begin();
-    write_offset = 0;
-    write_index = 0;
-    read_it = buffer.begin();
-    read_offset = 0;
-    read_index = 0;             
-    alloc_size = DATA_INIT_SIZE;     
+    init();
 }
 
 
@@ -23,8 +16,21 @@ BitBuffer::~BitBuffer(void)
 
 }
 
+void
+BitBuffer::init(void)
+{
+    buffer = std::vector<uint32_t> (DATA_INIT_SIZE, 0);
+    write_it = buffer.begin();
+    write_offset = 0;
+    write_index = 0;
+    read_it = buffer.begin();
+    read_offset = 0;
+    read_index = 0;
+    alloc_size = DATA_INIT_SIZE;
+}
 
-void 
+
+void
 BitBuffer::write(uint32_t value, uint8_t length)
 {
     if (length + write_offset <= BUFFER_SIZE) { // Fits in buffer[0]
@@ -122,10 +128,10 @@ BitBuffer::size(void)
 }
 
 
-int 
+bool
 BitBuffer::read_is_end(void)
 {
-    return read_offset >=write_offset && write_it == read_it;
+    return buffer.size() == read_index;
 }
 
 
@@ -162,10 +168,37 @@ BitBuffer::read_seek(uint32_t bits)
 }
 
 
-void 
+void
+BitBuffer::read_pad(void)
+{
+    if (read_offset != 0)
+    {
+        read_offset = 0;
+        read_index++;
+        read_it++;
+    }
+}
+
+
+void
+BitBuffer::write_pad(void)
+{
+    if (write_offset != 0)
+    {
+        write_offset = 0;
+        write_index++;
+        write_it++;
+    }
+}
+
+
+void
 BitBuffer::write_to_file(std::string filename)
 {
-    std::ofstream fout(filename, std::ios::out | std::ios::binary);
+    std::ofstream fout(filename, std::ios::out | std::ios::binary | std::ios::app);
+    //if (write_offset == 0)
+    //    fout.write((char*)&buffer[0], (write_index) * 4);  
+    //else
     fout.write((char*)&buffer[0], (write_index + 1) * 4);    
 }
 
@@ -175,11 +208,9 @@ BitBuffer::read_from_file(std::string filename)
 {
     std::ifstream fs(filename, std::ifstream::ate | std::ifstream::binary);
     std::streamsize size = fs.tellg();
-    //std::cout << "Filesize: " << size << "\n";
     buffer.resize(size / 4);
     write_it = buffer.begin();
     read_it = buffer.begin();
-    //std::cout << "Buffer size: " << buffer.size() << "\n";
     fs.seekg( 0, std::ios::beg );
     write_index = size / 4;
     fs.read((char*)buffer.data(), size); 

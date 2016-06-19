@@ -8,22 +8,29 @@ QualityScoreEncoder::QualityScoreEncoder(void)
 }
 
 
+/**
+ * Updates frequency table for arithmetic coding
+ */
 void
 QualityScoreEncoder::update(int c, uint64_t *freq)
 {
     if (!freeze)
-        for (int i = c + 1; i < SYMBOL_SIZE; i++)
+        for (uint32_t i = c + 1; i < SYMBOL_SIZE; i++)
             freq[i]++;
 }
 
 
+/**
+ * Resets frequency table for arithmetic coding
+ */
 void
 QualityScoreEncoder::reset(void) 
 {
     freeze = false;
-    for (int i = 0; i < SYMBOL_SIZE; i++)
+    for (uint32_t i = 0; i < SYMBOL_SIZE; i++)
         frequency[i] = i;
 }
+
 
 void
 QualityScoreEncoder::decode_entry(read_t& r)
@@ -35,8 +42,8 @@ QualityScoreEncoder::decode_entry(read_t& r)
       uint32_t pcount = frequency[SYMBOL_SIZE - 1];
       uint64_t scaled_value =  ((value - low + 1) * pcount - 1 ) / range;
 
-      int c = SYMBOL_SIZE - 1;
-      for (int i = 0; i < SYMBOL_SIZE - 1; i++)
+      uint32_t c = SYMBOL_SIZE - 1;
+      for (uint32_t i = 0; i < SYMBOL_SIZE - 1; i++)
       {
           if (scaled_value < frequency[i+1]) 
           {
@@ -48,7 +55,7 @@ QualityScoreEncoder::decode_entry(read_t& r)
       if (c >= BASE_ALPHABET_SIZE)
       {
           i += c - BASE_ALPHABET_SIZE;
-          for (int j = 0; j < c - BASE_ALPHABET_SIZE + 1; j++)
+          for (uint32_t j = 0; j < c - BASE_ALPHABET_SIZE + 1; j++)
               *qs++ = prev;
       }
       else
@@ -64,7 +71,6 @@ QualityScoreEncoder::decode_entry(read_t& r)
       low = low + (range*plow)/pcount;
       if (c == SYMBOL_SIZE - 1)
       {
-          std::cout << "REACHED EOF!\n";
           break;
       }
       for( ; ; ) {
@@ -87,6 +93,8 @@ QualityScoreEncoder::decode_entry(read_t& r)
         value += b->read(1);
       }
     }
+    
+    // Null terminate decoded quality score
     *qs = '\0';
 }
 
@@ -94,8 +102,6 @@ QualityScoreEncoder::decode_entry(read_t& r)
 void 
 QualityScoreEncoder::encode_symbol(uint32_t c)
 {
-    if (c == SYMBOL_SIZE - 1)
-        std::cout << "  - Done encoding quality scores.\n";
     uint32_t phigh = frequency[c+1];
     uint32_t plow = frequency [c];
     uint64_t range = high - low + 1;
@@ -129,6 +135,10 @@ QualityScoreEncoder::encode_symbol(uint32_t c)
 }
 
 
+/**
+ * Flushes the last bits for arithmetic encoding.
+ * MUST BE CALLED AT THE END OF THE ARITHMETIC ENCODING STAGE!
+ */
 void
 QualityScoreEncoder::encode_flush(void)
 {
@@ -145,8 +155,6 @@ QualityScoreEncoder::translate_symbol(std::vector<read_t>::iterator begin, std::
 {
     uint32_t consec = 0;
     char prev = 0;
-    // Ignore last '\0'
-    //bool hash = false;
     uint32_t len = begin->seq_len;
     for (auto it = begin; it != end; it++)
     {
@@ -154,24 +162,6 @@ QualityScoreEncoder::translate_symbol(std::vector<read_t>::iterator begin, std::
         for (uint8_t i = 0; i < len; i++)
         {
             char curr = entry[i];
-            /*if (curr == '#')
-            {
-                
-                hash = true;
-                for (int j = i + 1; j < len; j++)
-                    if (entry[j] != '#')
-                    {
-                        hash = false;
-                        break;
-                    }
-                if (hash)
-                {
-                    update(HASH_END, freq);
-                    symbols.push_back(HASH_END);
-                    hash = false;
-                    break;
-                }
-            }*/
             if (prev == curr)
             {
                 consec++;
@@ -215,34 +205,34 @@ QualityScoreEncoder::QualityScoreEncoder(char *filename)
 }
 
 
-
 void
 QualityScoreEncoder::qualityscore_decompress(std::vector<read_t>& reads, char *filename)
 {
-    //uint32_t curr_entry = 0;
     b->read_pad_back();
     uint32_t match_magic = 0;
     while (MAGIC_NUMBER != match_magic)
     {
         match_magic = b->read(32);
     }
-    //   std::cout << "MATCHED!\n";
     uint32_t entries = b->read(32);
     entry_len = b->read(32);
     reset();
     
-    //if (reads.size() < entries)
-    //    reads.resize(entries);
-        
+    if (reads.size() < entries)
+    {
+        std::cout << "\n[WARN] Current batch contains too many quality scores!\n  - Expected entries: " 
+                  << reads.size() << "\n  - Quality scores: " << entries << std::endl;
+        entries = reads.size();
+    }     
+    
     // Read in frequencies
-    for (int i = 0; i < SYMBOL_SIZE; i++)
+    for (uint32_t i = 0; i < SYMBOL_SIZE; i++)
     {
         frequency[i] = b->read(32);            
     }    
 
+    // Read in subbatch sizes
     uint32_t num_subbatch = b->read(32);
-    //printf("\n-->Entries: %u -- Len: %u -- frequency[20]: %u -- num_subbatch: %u\n", entries, entry_len, frequency[20], num_subbatch);
-
     uint32_t subbatch_entries[num_subbatch+1];
     subbatch_entries[0] = 0;
     for (uint32_t i = 0; i < num_subbatch; i++)
@@ -265,18 +255,6 @@ QualityScoreEncoder::qualityscore_decompress(std::vector<read_t>& reads, char *f
             decode_entry(reads[j]);
         }
     }    
-    
-    /*value = b->read(VALUE_BITS);
-    pending_bits = 0;
-    high = MAX_VALUE;
-    low = 0;
-    
-    // Decode
-    for (uint32_t i = 0; i < entries; i++)
-    {
- //       std::cout << "Entry: " << i << std::endl;
-        decode_entry(reads[curr_entry++]);
-    }*/
 }
 
 
@@ -284,7 +262,7 @@ QualityScoreEncoder::QualityScoreEncoder(uint64_t* frqs)
 {
     reset();
     b = std::shared_ptr<BitBuffer>(new BitBuffer);
-    for (int i = 0; i < SYMBOL_SIZE; i++)
+    for (uint32_t i = 0; i < SYMBOL_SIZE; i++)
         frequency[i] = frqs[i];
 }
 
@@ -295,11 +273,13 @@ QualityScoreEncoder::get_bb(void)
     return b;
 }
 
+
 void
 QualityScoreEncoder::encode_magic(void)
 {
     b->write(MAGIC_NUMBER, 32);
 }
+
 
 std::shared_ptr<BitBuffer>
 QualityScoreEncoder::compress_parallel(std::vector<uint8_t>& symbols)
@@ -316,15 +296,10 @@ QualityScoreEncoder::compress_parallel(std::vector<uint8_t>& symbols)
 void
 QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* filename)
 {
-    
-    std::cout << " [QUALITY SCORES]\n";
-
     int entries = reads.size();
     int entry_len = reads[0].seq_len;
-    
 
- 
-    bool calculated = false;
+    bool calculated = false; // Whether the frequencies were recalculated
     while (true)
     {   
         b->init();
@@ -333,7 +308,6 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
         b->write(entry_len, 32);
 
         // Translate into run-length symbols
-        std::cout << "  - Translating symbols\n";
         std::vector<uint8_t> symbols[N_THREADS];
     
         uint64_t frequencies[N_THREADS][SYMBOL_SIZE];
@@ -341,7 +315,7 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
 #pragma omp parallel for num_threads(N_THREADS)    
         for (int i = 0; i < N_THREADS; i++)
         {
-            for (int j = 0; j < SYMBOL_SIZE; j++)
+            for (uint32_t j = 0; j < SYMBOL_SIZE; j++)
                 frequencies[i][j] = 0;
             int boffset = entries * i / N_THREADS;
             int eoffset = entries * (i+1) / N_THREADS;
@@ -349,9 +323,8 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
         }
 
         if (!freeze) {
-            std::cout << "  - Calculating frequency distribution\n";
             // Sum frequencies and write to file
-            for (int i = 0; i < SYMBOL_SIZE; i++)
+            for (uint32_t i = 0; i < SYMBOL_SIZE; i++)
             {
                 frequency[i] = 0;
                 for (int j = 0; j < N_THREADS; j++)
@@ -361,11 +334,10 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
             calculated = true;
         }
 
-        for (int j = 0; j < SYMBOL_SIZE; j++)
+        for (uint32_t j = 0; j < SYMBOL_SIZE; j++)
             b->write(frequency[j], 32);
 
         // Arithmetic encoding for run-length symbols
-        std::cout << "  - Encoding symbols\n";
         high = MAX_VALUE;
         low = 0;
         pending_bits = 0;
@@ -390,10 +362,8 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
             output_size += bbs[i]->size();
        
         // Greedy approach - if threshold met then frequency table does not need to be recalculated
-        static uint32_t THRESHOLD = 32; // 32 bits per 10 quality score characters
-        if (calculated || output_size * 80 / entries / entry_len > THRESHOLD)
+        if (calculated || output_size * 80 / entries / entry_len > THRESHOLD_PER_TEN)
         {
-            std::cout << "Entries: " << entries << "\nLen: " << entry_len << "\nOutput size: " << output_size << std::endl;
             b->write_to_file(ofilename);
             for (int i = 0; i < N_THREADS; i++)
                 bbs[i]->write_to_file(ofilename);
@@ -401,9 +371,13 @@ QualityScoreEncoder::qualityscore_compress(std::vector<read_t>& reads, char* fil
         }
         else
         {
-            std::cout << "Entries: " << entries << "\nLen: " << entry_len << "\nOutput size: " << output_size << std::endl;
             freeze = false;
         }
     }
 }
 
+void
+QualityScoreEncoder::set_encode_threshold(uint32_t threshold)
+{
+    THRESHOLD_PER_TEN = threshold;
+}

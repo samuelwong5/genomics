@@ -2,19 +2,27 @@
 
 
 NumericFieldEncoder::NumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer)
-    : MetadataFieldEncoder(buffer)
+    : MetadataFieldEncoder(buffer), increment(false), width(0), prev(0)
 {
         
 }
 
 
 NumericFieldEncoder::NumericFieldEncoder(const std::shared_ptr<BitBuffer>& buffer, uint32_t w, bool i) 
-    : MetadataFieldEncoder(buffer), width(w), increment(i), prev(0)
+    : MetadataFieldEncoder(buffer), increment(i), width(w), prev(0)
 {
     
 }
 
 
+NumericFieldEncoder::NumericFieldEncoder(const NumericFieldEncoder& nfe) : MetadataFieldEncoder(nfe.buffer)
+{
+    width = nfe.width;
+    increment = nfe.increment;
+    prev = nfe.prev;
+}
+        
+        
 void 
 NumericFieldEncoder::decode_metadata(void)
 {
@@ -28,11 +36,9 @@ NumericFieldEncoder::encode_metadata(void)
 {
     // Field type = 10
     buffer->write(8, 4);
-    //EncodeUtils::bb_entry(8, 4, encoded);
     
     // Width
-    buffer->write(width, 12);
-    //EncodeUtils::bb_entry(width, 12, encoded);    
+    buffer->write(width, 12);  
 }
 
 
@@ -67,7 +73,14 @@ NumericFieldEncoder::decode(char* md)
     }
     else
     {
-       return md + sprintf(md, "%lu", delta);
+       return md + sprintf(md, "%u", delta);
     }
 }
 
+
+uint32_t 
+NumericFieldEncoder::get_width(void)
+{
+    return width;
+}    
+    

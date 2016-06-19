@@ -15,6 +15,12 @@ ConstantAlphanumericFieldEncoder::ConstantAlphanumericFieldEncoder(const std::sh
 }
 
 
+ConstantAlphanumericFieldEncoder::ConstantAlphanumericFieldEncoder(const ConstantAlphanumericFieldEncoder& cafe) : MetadataFieldEncoder(cafe.buffer)
+{
+    value = std::string(cafe.value);
+}
+
+
 void 
 ConstantAlphanumericFieldEncoder::decode_metadata(void)
 {
@@ -50,4 +56,11 @@ ConstantAlphanumericFieldEncoder::decode(char * md)
     for (uint32_t i = 0; i < value.length(); i++)
         *(md++) = value[i];
     return md;
+}
+
+
+uint32_t 
+ConstantAlphanumericFieldEncoder::get_width(void) 
+{ 
+    return 0; 
 }

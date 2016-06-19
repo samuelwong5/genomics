@@ -11,18 +11,16 @@ class AutoIncrementingFieldEncoder : public MetadataFieldEncoder {
     public:
         AutoIncrementingFieldEncoder(const std::shared_ptr<BitBuffer>&);
         AutoIncrementingFieldEncoder(const std::shared_ptr<BitBuffer>&, uint32_t);
-        AutoIncrementingFieldEncoder(const AutoIncrementingFieldEncoder& aife) : MetadataFieldEncoder(aife.buffer)
-        {
-            //current = aife.current;
-        }
+        AutoIncrementingFieldEncoder(const AutoIncrementingFieldEncoder&);
+        ~AutoIncrementingFieldEncoder() { }
         MetadataFieldEncoder* clone(void) { return new AutoIncrementingFieldEncoder(*this); }
         
         void decode_metadata(void);
         void encode_metadata(void);
         char* decode(char *);
         bool encode(std::string);
-        void set_current(uint32_t c) { current = c; } // For multithreading
-        uint32_t get_width(void) { return 0; }
+        void set_current(uint32_t c) { current = c; }
+        uint32_t get_width(void);
 };
 
 #endif

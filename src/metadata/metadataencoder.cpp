@@ -12,6 +12,7 @@ MetaDataEncoder::metadata_separators(std::string metadata)
     }
 }
 
+
 static void
 analyze_parallel(std::vector<read_t>::iterator begin, std::vector<read_t>::iterator end, MetadataAnalysis *ma, uint32_t fields, uint32_t entries)
 {  
@@ -105,7 +106,6 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, uint32_t entries)
     EncodeUtil::split(metadata, parts);
     num_fields = parts.size();
     num_sep = sep.size();
-    std::cout << "  - Analyzing Fields: [" << unsigned(num_fields) << "]\n";
     
     MetadataAnalysis mas[N_THREADS][num_fields];
     
@@ -143,12 +143,10 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, uint32_t entries)
   
         if (constant) 
         {
-            std::cout << "    - Const. Alphanumeric: " << val << std::endl;
             fields.push_back(new ConstantAlphanumericFieldEncoder(b, val));
         }
         else if (mft == MetadataFieldType::AUTOINCREMENTING)
         {
-            std::cout << "    - Auto Incrementing" << std::endl;    
             fields.push_back(new AutoIncrementingFieldEncoder(b, 1));
         }
          
@@ -157,7 +155,6 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, uint32_t entries)
             uint32_t max = 0;
             for (int i = 0; i < N_THREADS; i++)
                 max = max > mas[i][j].width ? max : mas[i][j].width;
-            std::cout << "    - Numeric  (Max: " << max << ")\n";
             uint32_t wd = EncodeUtil::ceil_log(max + 1, 2);
             fields.push_back(new NumericFieldEncoder(b, wd, false));
         }
@@ -173,7 +170,6 @@ MetaDataEncoder::metadata_analyze(std::vector<read_t>& reads, uint32_t entries)
                 vals.insert(v[j]);
             }
 
-            std::cout << "    - Alphanumeric  (Values: " << vals.size() << ")\n";
             int bits_per_char = 8;
             if (vals.size() * 100 < entries) // Enable mapping
             {
@@ -268,8 +264,9 @@ compress_parallel(std::vector<read_t>::iterator begin, std::vector<read_t>::iter
         for (int i = 0; i < num_fields; i++)
             if (!fencoders[i]->encode(v[i])) {
                 fail = true;
-                //printf("Error at %dth encoder\n - Metadata:%s\n", i, metadata.c_str());
             }
+            
+        // Reanalyze metadata if failed
         if (fail) {
             break;
         }
@@ -346,41 +343,29 @@ MetaDataEncoder::MetaDataEncoder(char *filename) : b(std::shared_ptr<BitBuffer>(
     b->read_from_file(ifn);
 }
 
+
 bool
 MetaDataEncoder::metadata_decompress(std::vector<read_t>& reads, char *filename)
 {
-    //std::cout << " [SEQUENCE ID/METADATA]\n";
     uint32_t magic = 0;
     while (magic != MAGIC_NUMBER)
         magic = b->read(32);
     uint32_t curr_entry = 0;
+    
     // Decode fields and separators
     num_fields = b->read(8);
     uint32_t entries = b->read(24);
-    //std::cout << "\n  - Entries: [" << entries << "]\n";
     num_sep = b->read(8);
-    //std::cout << "  - Fields: [" << unsigned(num_fields) << "]\n  - Delimiters: [" << unsigned(num_sep) << "]\n";
     reads.resize(entries);
-    //std::cout << "  - Decoding fields\n";
     decode_fields();
     total_entries += entries;
-    //std::cout << "  - Decoding separators: ";
     decode_separators();
-    //for (int i = 0; i < sep.size(); i++)
-    //    std::cout << sep[i];
-   // std::cout << "\n";
-    //std::cout << "  - Decoding entries\n";
-    //std::cout << "Reads size: " << reads.size() << std::endl;
+
     for (uint32_t i = 0; i < entries; i++)
     {
-        //printf("[%lu/%lu] %s\n", i, entries, reads[curr_entry-1].meta_data);
         decode_entry(reads[curr_entry++]);
-        //if (i % 1000 == 0)
-        //    printf("[%lu/%lu] %s\n", i, entries, reads[curr_entry-1].meta_data);
     }
-   // std::cout << "Done decode." << std::endl;
     b->read_pad();
-   // std::cout << "Padded." << std::endl;
     return b->read_is_end();
 }
 
@@ -391,7 +376,6 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
 {
     // Init
     b->init();
-    std::cout << " [SEQUENCE ID/METADATA]\n";
     uint32_t entries = reads.size();
     
     bool success = false;
@@ -402,22 +386,18 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
         {
             metadata_analyze(reads, entries);
         }
-
         b->write(MAGIC_NUMBER, 32);
  
         // Compress sequence identifier fields metadata
         b->write(num_fields, 8);         // Number of fields
-        b->write(entries, 24);              // Number of entries
+        b->write(entries, 24);           // Number of entries
         b->write(num_sep, 8);
-        std::cout << "  - Encoding field headers\n";
         for (auto it = fields.begin(); it != fields.end(); it++)
             (*it)->encode_metadata();
 
-        std::cout << "  - Encoding separators\n";
         // Compress separators
         encode_separators();  
 
-        std::cout << "  - Compressing metadata entries\n";
         // Compress metadata entries
         std::shared_ptr<std::vector<bb_entry_t> > bb_entries[N_THREADS];
 
@@ -428,9 +408,7 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
             bb_entries[i] = std::make_shared<std::vector<bb_entry_t> >();
             int boffset = entries * i / N_THREADS;
             int eoffset = entries * (i+1) / N_THREADS;
-
             success &= compress_parallel(reads.begin() + boffset, reads.begin() + eoffset, fields, bb_entries[i]);
-            //std::cout << "Compressed entries " << boffset << " to " << eoffset << "\n";
         }
         if (success)
             for (int i = 0; i < N_THREADS; i++)
@@ -442,8 +420,9 @@ MetaDataEncoder::metadata_compress(std::vector<read_t>& reads, char *filename)
             b->init();
         }
     }
+    
+    // Write to file
     std::string ofilename(filename);
     ofilename.append(".md");
     b->write_to_file(ofilename);
-    //std::cout << "  - Compressed size: " << b->size() << " bytes --> " << ofilename << "\n";
 }

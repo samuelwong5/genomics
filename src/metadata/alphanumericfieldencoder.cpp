@@ -16,7 +16,6 @@ AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuff
         for (std::set<std::string>::iterator it = values.begin(); it != values.end(); ++it)
         {
             map.push_back(*it);
-            //std::cout << "      - " << map.size() - 1 << ": " << *it << std::endl;
         }
         mappings = w;
         width = EncodeUtil::ceil_log(mappings, 2);
@@ -28,6 +27,15 @@ AlphanumericFieldEncoder::AlphanumericFieldEncoder(const std::shared_ptr<BitBuff
 }
 
 
+AlphanumericFieldEncoder::AlphanumericFieldEncoder(const AlphanumericFieldEncoder& afe) : MetadataFieldEncoder(afe.buffer)
+{
+    width = afe.width;
+    mappings = afe.mappings;
+    enable_map = afe.enable_map;
+    map = afe.map;
+}
+        
+        
 void 
 AlphanumericFieldEncoder::decode_metadata(void)
 {
@@ -59,11 +67,6 @@ AlphanumericFieldEncoder::decode_metadata(void)
     {
         width = buffer->read(12);
     }
-    //std::cout << "  - Alphanumeric ";
-    //if (enable_map) 
-    //    std::cout << "[Mappings: " << mappings << "]\n";
-    //else
-    //    std::cout << "[Max characters: " << width << "]\n";
 }
 
 
@@ -83,7 +86,6 @@ AlphanumericFieldEncoder::encode_metadata(void)
             for (std::string::iterator mit = it->begin(); mit != it->end(); ++mit)
                 buffer->write(*mit, 8);
             buffer->write(0, 8);
-            //std::cout << "  Mapping " << i++ << ": " << *it << std::endl;
         }
     }
     else
@@ -114,10 +116,12 @@ AlphanumericFieldEncoder::encode(std::string s)
     } 
     else
     {
-        //Write each character to bitbuffer using 8 bits
+        // Write each character to bitbuffer using 8 bits
         int pad = width - s.length() * 8;
+        
+        // If current max allowed width is surpassed, 
+        // return false to reanalyze metadata
         if (pad < 0) {
-            std::cout << "Writing: " << s << " with " << s.length() << " characters but only allowing " << width / 8 << " characters!\n";
             return false;
         }
         for (std::string::iterator it = s.begin(); it != s.end(); ++it)
@@ -149,7 +153,6 @@ AlphanumericFieldEncoder::decode(char *md)
         while (num_chars--) 
         {
             char c = buffer->read(8);
-            //std::cout << c;
             if (!c) { break; }
             *(md++) = c;          
         }
@@ -162,3 +165,12 @@ AlphanumericFieldEncoder::decode(char *md)
     }
     return md;
 }
+
+
+uint32_t 
+AlphanumericFieldEncoder::get_width(void)
+{ 
+    return width; 
+}
+        
+        

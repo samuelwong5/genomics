@@ -7,8 +7,6 @@
 #include <vector>
 
 #include "metadatafieldencoder.hpp"
-#include "encodeutil.hpp"
-
 
 class AlphanumericFieldEncoder : public MetadataFieldEncoder {
     private:
@@ -20,20 +18,15 @@ class AlphanumericFieldEncoder : public MetadataFieldEncoder {
     public:
         AlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>&);
         AlphanumericFieldEncoder(const std::shared_ptr<BitBuffer>&, uint32_t, bool, std::set<std::string>);
-        AlphanumericFieldEncoder(const AlphanumericFieldEncoder& afe) : MetadataFieldEncoder(afe.buffer)
-        {
-            width = afe.width;
-            mappings = afe.mappings;
-            enable_map = afe.enable_map;
-            map = afe.map;
-        }
+        AlphanumericFieldEncoder(const AlphanumericFieldEncoder&);
+        ~AlphanumericFieldEncoder() { }
         MetadataFieldEncoder* clone(void) { return new AlphanumericFieldEncoder(*this); }
         
         void decode_metadata(void);
         void encode_metadata(void);
         bool encode(std::string);
         char* decode(char *);
-        uint32_t get_width(void) { return width; }
+        uint32_t get_width(void);
 };
 
 #endif

@@ -9,14 +9,13 @@
 #include <set>
 #include <vector>
 
-#include "../sequence/reads.hpp"
-
 #include "metadatafieldencoder.hpp"
 #include "alphanumericfieldencoder.hpp"
 #include "autoincrementingfieldencoder.hpp"
 #include "constantalphanumericfieldencoder.hpp"
 #include "numericfieldencoder.hpp"
-#include "encodeutil.hpp"
+
+#include "../sequence/reads.hpp"
 
 enum MetadataFieldType {
     CONSTANT_ALPHANUMERIC = 0,

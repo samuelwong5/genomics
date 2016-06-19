@@ -8,8 +8,8 @@
 #include <string>
 #include <vector>
 
-#include "../bitbuffer/bitbuffer.hpp"
-#include "encodeutil.hpp"
+#include "../utils/bitbuffer.hpp"
+#include "../utils/encodeutil.hpp"
 
 class MetadataFieldEncoder {
     protected:
@@ -18,10 +18,10 @@ class MetadataFieldEncoder {
       
     public:
       MetadataFieldEncoder(const std::shared_ptr<BitBuffer>&);           // Constructor
-      ~MetadataFieldEncoder() { }
+      virtual ~MetadataFieldEncoder() = 0;                               // Destructor
       virtual void decode_metadata(void) = 0;                            // Decode metadata from BitBuffer
       virtual void encode_metadata(void) = 0;                            // Encode metadata from BitBuffer
-      virtual char* decode(char *) = 0;                            // Decode next entry for a field
+      virtual char* decode(char *) = 0;                                  // Decode next entry for a field
       virtual bool encode(std::string) = 0;                              // Encode next entry for a field
       virtual uint32_t get_width(void) = 0;                              // Get the width of each field entry   
       std::shared_ptr<BitBuffer> get_buffer(void) { return buffer; }     // DEBUG ONLY - get BitBuffer member

@@ -15,6 +15,12 @@ AutoIncrementingFieldEncoder::AutoIncrementingFieldEncoder(const std::shared_ptr
 }
 
 
+AutoIncrementingFieldEncoder::AutoIncrementingFieldEncoder(const AutoIncrementingFieldEncoder& aife) : MetadataFieldEncoder(aife.buffer)
+{
+    
+}
+
+
 void 
 AutoIncrementingFieldEncoder::decode_metadata(void)
 {
@@ -45,4 +51,11 @@ char *
 AutoIncrementingFieldEncoder::decode(char* md)
 {
     return md + sprintf(md, "%d", current++);
+}
+
+
+uint32_t 
+AutoIncrementingFieldEncoder::get_width(void) 
+{ 
+    return 0; 
 }

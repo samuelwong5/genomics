@@ -7,29 +7,24 @@
 
 #include "metadatafieldencoder.hpp"
 
-
 class NumericFieldEncoder : public MetadataFieldEncoder {
     private:
-        uint32_t width;
         bool increment; 
+        uint32_t width;
         uint32_t prev;
         
     public:
         NumericFieldEncoder(const std::shared_ptr<BitBuffer>&);
         NumericFieldEncoder(const std::shared_ptr<BitBuffer>&, uint32_t, bool);
-        NumericFieldEncoder(const NumericFieldEncoder& nfe) : MetadataFieldEncoder(nfe.buffer)
-        {
-            width = nfe.width;
-            increment = nfe.increment;
-            prev = nfe.prev;
-        }
+        NumericFieldEncoder(const NumericFieldEncoder&);
+        ~NumericFieldEncoder() { }
         MetadataFieldEncoder* clone(void) { return new NumericFieldEncoder(*this); }
         
         void decode_metadata(void);
         void encode_metadata(void);
         char* decode(char *);
         bool encode(std::string);
-        uint32_t get_width(void) { return width; }
+        uint32_t get_width(void);
 };
 
 #endif
