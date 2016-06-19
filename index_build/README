@@ -1,0 +1,18 @@
+Index Builder v1.0 James Arram 2016
+-----------------------------------
+
+To build:
+$ sh install.sh
+$ make
+
+to run:
+$ ./index_build <fasta file>
+
+Notes:
+1) This program uses libdivsufsort to generate the suffix array 
+2) The FM-index is contructed with step size = 3
+3) The input fasta file should have alphabet {A, C, G, T, N}
+4) Any 'N' sequences longer than 10 are removed. The remaining 'N'
+characters are replaced by 'G'
+5) The suffix array is not sampled to improve pattern matching
+performance
